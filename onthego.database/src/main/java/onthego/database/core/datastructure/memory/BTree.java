@@ -3,6 +3,7 @@ package onthego.database.core.datastructure.memory;
 import static java.util.stream.Collectors.joining;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -125,13 +126,17 @@ public class BTree<T extends Comparable<? super T>> {
 	
 	private Node<T> root;
 	
+	private Comparator<T> comparator;
+	
 	public BTree(int threshold) {
 		this.threshold = threshold;
-		initialize();
+		this.root = new Node<T>(threshold, true);
+		this.comparator = Comparator.naturalOrder();
 	}
 	
-	public void initialize() {
-		root = new Node<T>(threshold, true);
+	public BTree(int threshold, Comparator<T> comparator) {
+		this(threshold);
+		this.comparator = comparator;
 	}
 	
 	private Pair<Node<T>,Integer> search(Node<T> node, T key) {
@@ -140,11 +145,11 @@ public class BTree<T extends Comparable<? super T>> {
 		}
 		
 		int i = 0;
-		while (i < node.n && key.compareTo(node.key[i]) > 0) {
+		while (i < node.n && comparator.compare(key, node.key[i]) > 0) {
 			++i;
 		}
 		
-		if (i < node.n && key.compareTo(node.key[i]) == 0) { //equal to the key
+		if (i < node.n && comparator.compare(key, node.key[i]) == 0) { //equal to the key
 			return new Pair<Node<T>,Integer>(node, i);
 		} else if (node.isLeaf) { // could not find the key in the leaf node, there is no the key in BTree
 			return NULL_PAIR;
@@ -195,8 +200,8 @@ public class BTree<T extends Comparable<? super T>> {
 	private void insert(Node<T> node, T key) {
 		if (node.isLeaf) {
 			int index = node.n - 1;
-			//while (index >= 0 && key.compareTo(node.key[index]) < 0) {	
-			while (index >= 0 && key.compareTo(node.key[index]) <= 0) {
+			//while (index >= 0 && comparator.compare(key, node.key[index]) < 0) {	
+			while (index >= 0 && comparator.compare(key, node.key[index]) <= 0) {
 				node.key[index + 1] = node.key[index];
 				--index;
 			}
@@ -204,8 +209,8 @@ public class BTree<T extends Comparable<? super T>> {
 			node.n++;
 		} else {
 			int index = node.n - 1;
-			//while (index >= 0 && key.compareTo(node.key[index]) < 0) {	
-			while (index >= 0 && key.compareTo(node.key[index]) <= 0) {
+			//while (index >= 0 && comparator.compare(key, node.key[index]) < 0) {	
+			while (index >= 0 && comparator.compare(key, node.key[index]) <= 0) {
 				--index;
 			}
 			++index;
@@ -213,7 +218,7 @@ public class BTree<T extends Comparable<? super T>> {
 			Node<T> successor = node.child[index];
 			if (successor.n == 2*threshold - 1) {
 				splitChild(node, index); 
-				if (key.compareTo(node.key[index]) > 0) {
+				if (comparator.compare(key, node.key[index]) > 0) {
 					successor = node.child[index + 1];
 				}
 			}
@@ -285,13 +290,13 @@ public class BTree<T extends Comparable<? super T>> {
 	
 	private boolean delete(Node<T> node, T key) {
 		int i = 0;
-		while (i < node.n && key.compareTo(node.key[i]) > 0) {
+		while (i < node.n && comparator.compare(key, node.key[i]) > 0) {
 			++i;
 		}
 				
 		// in case of reaching to leaf node
 		if (node.isLeaf) {
-			if (i < node.n && key.compareTo(node.key[i]) == 0) {
+			if (i < node.n && comparator.compare(key, node.key[i]) == 0) {
 				while (i < node.n - 1) {
 					node.key[i] = node.key[i + 1];
 					++i;
@@ -303,7 +308,7 @@ public class BTree<T extends Comparable<? super T>> {
 		}
 		
 		// in case that the matched key is in an internal node
-		if (i < node.n && key.compareTo(node.key[i]) == 0) {
+		if (i < node.n && comparator.compare(key, node.key[i]) == 0) {
 			Node<T> leftChild = node.child[i];
 			Node<T> rightChild = node.child[i + 1];
 			
@@ -319,7 +324,7 @@ public class BTree<T extends Comparable<? super T>> {
 				Node<T> successor = merge(node, i, leftChild, rightChild);			
 				return delete(successor, key);
 			}
-		} else { //(i < node.n && key.compareTo(node.key[i]) < 0) || (i == node.n)
+		} else { //(i < node.n && comparator.compare(key, node.key[i]) < 0) || (i == node.n)
 			Node<T> successor = node.child[i];
 
 			if (successor.n < threshold) {
