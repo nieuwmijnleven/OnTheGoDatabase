@@ -22,18 +22,12 @@ public class BTreeTest {
 	
 	private BTree<Integer> btree;
 	
-	@Before
-	public void setUp() throws Exception {
-		btree = new BTree<>(BTREE_THRESHOLD);
-		for (int key = MIN_KEY_VALUE; key <= MAX_KEY_VALUE; ++key) {
-			btree.insert(key);
-		}
-		//printLevelOrder();
-	}
-
 	@Test
 	public void testContains() {
+		btree = new BTree<>(BTREE_THRESHOLD);
 		for (int key = MIN_KEY_VALUE; key <= MAX_KEY_VALUE; ++key) {
+			assertFalse(btree.contains(key));
+			btree.insert(key);
 			assertTrue(btree.contains(key));
 		}
 		
@@ -64,10 +58,10 @@ public class BTreeTest {
 	@Test
 	public void testRandomInsert() {
 		btree = new BTree<>(BTREE_THRESHOLD);
-		int[] used = new int[MAX_KEY_VALUE / 32 + 1];
+		int[] used = new int[(MAX_KEY_VALUE - MIN_KEY_VALUE + 32) / 32];
 		
 		for (int i = MIN_KEY_VALUE; i <= MAX_KEY_VALUE; ++i) {
-			int randomKey = getRandomNumeberInRange(MIN_KEY_VALUE, MAX_KEY_VALUE, used);
+			int randomKey = getUnusedRandomNumeberInRange(MIN_KEY_VALUE, MAX_KEY_VALUE, used);
 			assertFalse(btree.contains(randomKey));
 			btree.insert(randomKey);
 			assertTrue(btree.contains(randomKey));
@@ -76,6 +70,7 @@ public class BTreeTest {
 	
 	@Test
 	public void testForwardSequentialDelete() {
+		createBTree();
 		for (int i = MIN_KEY_VALUE; i <= MAX_KEY_VALUE; ++i) {
 			assertTrue(btree.contains(i));
 			btree.delete(i);
@@ -86,6 +81,7 @@ public class BTreeTest {
 	
 	@Test
 	public void testBackwardSequentialDelete() {
+		createBTree();
 		for (int i = MAX_KEY_VALUE; i >= MIN_KEY_VALUE; --i) {
 			assertTrue(btree.contains(i));
 			btree.delete(i);
@@ -96,9 +92,10 @@ public class BTreeTest {
 	
 	@Test
 	public void testRandomDelete() {
-		int[] used = new int[MAX_KEY_VALUE / 32 + 1];
+		createBTree();
+		int[] used = new int[(MAX_KEY_VALUE - MIN_KEY_VALUE + 32) / 32];
 		for (int i = MIN_KEY_VALUE; i <= MAX_KEY_VALUE; ++i) {
-			int randomKey = getRandomNumeberInRange(MIN_KEY_VALUE, MAX_KEY_VALUE, used);
+			int randomKey = getUnusedRandomNumeberInRange(MIN_KEY_VALUE, MAX_KEY_VALUE, used);
 			btree.delete(randomKey);
 			checkOrder();
 			assertFalse(btree.contains(randomKey));
@@ -107,11 +104,21 @@ public class BTreeTest {
 
 	@Test
 	public void testIterator() {
+		createBTree();
+		
 		int key = MIN_KEY_VALUE;
 		Iterator<Integer> it = btree.iterator();
 		while (it.hasNext()) {
 			assertTrue(key++ == it.next());
 		}
+	}
+	
+	private void createBTree() {
+		btree = new BTree<>(BTREE_THRESHOLD);
+		for (int key = MIN_KEY_VALUE; key <= MAX_KEY_VALUE; ++key) {
+			btree.insert(key);
+		}
+		//printLevelOrder();
 	}
 	
 	private void printLevelOrder() {
@@ -151,13 +158,13 @@ public class BTreeTest {
 		return random.ints(min, (max + 1)).limit(1).findFirst().getAsInt();
 	}
 	
-	private int getRandomNumeberInRange(int min, int max, int[] used) {
+	private int getUnusedRandomNumeberInRange(int min, int max, int[] used) {
 		int randVal = min;
 		do {
 			randVal = getRandomNumberInRange(min, max);
-		} while ((used[(randVal - 1) / 32] & (1 << (randVal % 32))) != 0);
+		} while ((used[(randVal - min) / 32] & (1 << ((randVal - min) % 32))) != 0);
 		
-		used[(randVal - 1) / 32] |= 1 << (randVal % 32);
+		used[(randVal - min) / 32] |= 1 << ((randVal - min) % 32);
 		return randVal;
 	}
 }
