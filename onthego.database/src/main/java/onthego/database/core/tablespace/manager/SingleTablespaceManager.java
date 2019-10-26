@@ -14,7 +14,7 @@ import onthego.database.core.tablespace.meta.SingleTablespaceHeader;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
 import onthego.database.core.tablespace.meta.TablespaceHeader;
 
-public class SingleTablespaceManager {
+public class SingleTablespaceManager implements TablespaceManager {
 	
 	public static final int BLOCK_HEADER_SIZE = Integer.BYTES;
 	
@@ -43,6 +43,14 @@ public class SingleTablespaceManager {
 	
 	private TablespaceHeader tsHeader;
 	
+	public static TablespaceManager create(String tsPath, TablespaceHeader tsHeader) throws IOException {
+		return new SingleTablespaceManager(tsPath, tsHeader);
+	}
+	
+	public static TablespaceManager load(String tsPath) throws IOException {
+		return new SingleTablespaceManager(tsPath);
+	}
+	
 	private SingleTablespaceManager(String tsPath, TablespaceHeader tsHeader) throws IOException {
 		this.io = new RandomAccessFile(tsPath, "rws");
 		this.tsHeader = tsHeader;
@@ -53,15 +61,8 @@ public class SingleTablespaceManager {
 		this.io = new RandomAccessFile(tsPath, "rws");
 		loadHeader();
 	}
-	
-	public static SingleTablespaceManager create(String tsPath, TablespaceHeader tsHeader) throws IOException {
-		return new SingleTablespaceManager(tsPath, tsHeader);
-	}
-	
-	public static SingleTablespaceManager load(String tsPath) throws IOException {
-		return new SingleTablespaceManager(tsPath);
-	}
-
+		
+	@Override
 	public void loadHeader() {
 		try {
 			io.seek(0);
@@ -85,6 +86,7 @@ public class SingleTablespaceManager {
 		}
 	}
 	
+	@Override
 	public void saveHeader() {
 		try {
 			io.seek(0);
@@ -110,6 +112,7 @@ public class SingleTablespaceManager {
 			//set the prolog block which is never freed for coalescing free blocks 
 			allocate(0);
 		} catch(Exception ioe) {
+			ioe.printStackTrace();
 			throw new TablespaceManagerException(ioe);
 		}
 	}
@@ -299,7 +302,7 @@ public class SingleTablespaceManager {
 	private void insertFreeBlock(long newFreeBlockPos) {
 		long firstFreeBlockPos = tsHeader.getFirstFreeBlockPos();
 		
-		//in case that there is no 
+		//in case that there is no free block in free block list
 		if (firstFreeBlockPos == 0) {  
 			FreeListNode newFreeNode = new FreeListNode(newFreeBlockPos, newFreeBlockPos);
 			putFreeBlock(newFreeBlockPos, newFreeNode);
@@ -319,8 +322,9 @@ public class SingleTablespaceManager {
 		if (firstFreeBlockPos != firstFreeNode.prev) {
 			FreeListNode prevFreeNode = getFreeBlock(firstFreeNode.prev);
 			prevFreeNode.next = newFreeBlockPos;
-			firstFreeNode.prev = newFreeBlockPos;
 			putFreeBlock(firstFreeNode.prev, prevFreeNode);
+			
+			firstFreeNode.prev = newFreeBlockPos;
 			putFreeBlock(firstFreeBlockPos, firstFreeNode);
 		} else {
 			firstFreeNode.next = newFreeBlockPos;
@@ -367,30 +371,41 @@ public class SingleTablespaceManager {
 			saveHeader();
 		}
 	}
+	
+	@Override
+	public TablespaceHeader getHeader() {
+		return new SingleTablespaceHeader(this.tsHeader);
+	}
 
+	@Override
 	public long getRootPos() {
 		return tsHeader.getTableRootPos();
 	}
 
+	@Override
 	public void saveRootPos(long rootPos) {
 		tsHeader.setTableRootPos(rootPos);
 		saveHeader();
 	}
 
+	@Override
 	public long getRecordCount() {
 		return tsHeader.getRecordCount();
 	}
 
+	@Override
 	public void increaseRecordCount() {
 		tsHeader.setRecordCount(tsHeader.getRecordCount() + 1);
 		saveHeader();
 	}
 	
+	@Override
 	public void decreaseRecordCount() {
 		tsHeader.setRecordCount(tsHeader.getRecordCount() - 1);
 		saveHeader();
 	}
 
+	@Override
 	public long allocate(int size)  {
 		int alignedSize = 0;
 		if (size >= FREE_LIST_NODE_SIZE) {
@@ -427,11 +442,19 @@ public class SingleTablespaceManager {
 		return bestfitBlockPos;
 	}
 
+	@Override
 	public void free(long blockPos) {
 		int size = getBlockSize(blockPos);
 		boolean prevBlockAllocationStatus = getBlockAllocationStatus(getPrevBlockPos(blockPos));
 		boolean nextBlockAllocationStatus = getBlockAllocationStatus(getNextBlockPos(blockPos));
-
+		
+		System.out.println("=======================");
+		System.out.println("blockPos = " + blockPos);
+		System.out.println("size = " + size);
+		System.out.println("prevBlockAllocationStatus = " + prevBlockAllocationStatus);
+		System.out.println("nextBlockAllocationStatus = " + nextBlockAllocationStatus);
+		
+		
 		//coalescing adjacent unallocated blocks
 		if (prevBlockAllocationStatus && nextBlockAllocationStatus) {
 			putBlockHeader(blockPos, pack(size, 0));
@@ -441,6 +464,10 @@ public class SingleTablespaceManager {
 			long prevBlockPos = getPrevBlockPos(blockPos);
 			int prevBlockSize = getBlockSize(prevBlockPos);
 			int newSize = prevBlockSize + size;
+			
+			System.out.println("prevBlockPos = " + prevBlockPos);
+			System.out.println("prevBlockSize = " + prevBlockSize);
+			System.out.println("newSize = " + newSize);
 
 			putBlockHeader(prevBlockPos, pack(newSize, 0));
 			putBlockFooter(prevBlockPos, pack(newSize, 0));
@@ -448,6 +475,10 @@ public class SingleTablespaceManager {
 			long nextBlockPos = getNextBlockPos(blockPos);
 			int nextBlockSize = getBlockSize(nextBlockPos);
 			int newSize = size + nextBlockSize;
+			
+			System.out.println("nextBlockPos = " + nextBlockPos);
+			System.out.println("nextBlockSize = " + nextBlockSize);
+			System.out.println("newSize = " + newSize);
 
 			putBlockHeader(blockPos, pack(newSize, 0));
 			putBlockFooter(blockPos, pack(newSize, 0));
@@ -460,28 +491,64 @@ public class SingleTablespaceManager {
 			long nextBlockPos = getNextBlockPos(blockPos);
 			int nextBlockSize = getBlockSize(nextBlockPos);
 			int newSize = prevBlockSize + size + nextBlockSize;
+			
+			System.out.println("prevBlockPos = " + prevBlockPos);
+			System.out.println("prevBlockSize = " + prevBlockSize);
+			System.out.println("nextBlockPos = " + nextBlockPos);
+			System.out.println("nextBlockSize = " + nextBlockSize);
+			System.out.println("newSize = " + newSize);
 
 			putBlockHeader(prevBlockPos, pack(newSize, 0));
 			putBlockFooter(prevBlockPos, pack(newSize, 0));
 
 			deleteFreeBlock(nextBlockPos);
 		}
+		
+		System.out.println("=======================");
+	}
+	
+	public byte[] readBlock(long blockPos) throws IOException {
+		int size = getBlockSize(blockPos) - BLOCK_OVERHEAD_SIZE;
+		byte[] payload = new byte[size];
+		
+		io.seek(blockPos);
+		io.read(payload);
+		return payload;
+	}
+	
+	public void writeBlock(long blockPos, byte[] payload) throws IOException {
+		int size = getBlockSize(blockPos) - BLOCK_OVERHEAD_SIZE;
+		if (size < payload.length) {
+			throw new TablespaceManagerException("The size of the payload to be written is larger than that of the target block.");
+		}
+		
+		io.seek(blockPos);
+		io.write(payload);
+	}
+	
+	public void close() {
+		try {
+			io.close();
+		} catch (IOException ioe) {
+			throw new TablespaceManagerException(ioe);
+		}
 	}
 
+	@Override
 	public void printFreeListBlock() {
 		long firstFreeBlockPos = tsHeader.getFirstFreeBlockPos();
 		long freeBlockPos = firstFreeBlockPos;
 		long prevFreeBlockPos = 0;
 
 		while (freeBlockPos != prevFreeBlockPos) {
-			System.out.printf("(offset= %X, size= %d)", getBlockSize(freeBlockPos));
+			System.out.printf("(offset= %d, size= %d)", freeBlockPos, getBlockSize(freeBlockPos));
 
 			prevFreeBlockPos = freeBlockPos;
 			freeBlockPos = getNextFreeBlockPos(freeBlockPos);
-			if (freeBlockPos == -1) {
-				System.out.println("could not read the next free block.");
-				return;
-			}
+//			if (freeBlockPos == -1) {
+//				System.out.println("could not read the next free block.");
+//				return;
+//			}
 
 			if (freeBlockPos == firstFreeBlockPos)
 				break;

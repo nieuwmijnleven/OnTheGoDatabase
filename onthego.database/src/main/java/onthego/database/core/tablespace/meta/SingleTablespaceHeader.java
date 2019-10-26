@@ -98,6 +98,17 @@ public class SingleTablespaceHeader implements TablespaceHeader {
 		this.tableMetaInfoPos = builder.tableMetaInfoPos;
 		this.recordCount = builder.recordCount;
 	}
+	
+	public SingleTablespaceHeader(TablespaceHeader tsHeader) {
+		this.magic = tsHeader.getMagic();
+		this.chunkSize = tsHeader.getChunkSize();
+		this.crc = tsHeader.getCrc();
+		this.firstBlockPos = tsHeader.getFirstBlockPos();
+		this.firstFreeBlockPos = tsHeader.getFirstFreeBlockPos();
+		this.tableRootPos = tsHeader.getTableRootPos();
+		this.tableMetaInfoPos = tsHeader.getTableMetaInfoPos();
+		this.recordCount = tsHeader.getRecordCount();
+	}
 
 	@Override
 	public byte[] getMagic() {
