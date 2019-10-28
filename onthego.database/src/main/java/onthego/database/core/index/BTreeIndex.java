@@ -19,7 +19,7 @@ import java.util.Stack;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 
 public class BTreeIndex<T extends Comparable<? super T>> {
-		
+	
 	static class Node<T> {
 		boolean isLeaf;
 		int n;
@@ -47,14 +47,6 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 			this.isLeaf = isLeaf;
 		}
 		
-//		Node<T> getChild(int index) {
-//			if (child[index] == null) {
-//				return (Node<T>)BTree.this.loadNode(childPos[index]);
-//			}
-//			
-//			return child[index];
-//		}
-		
 		@Override
 		public String toString() {
 			return Arrays.stream(key, 0, n).map(String::valueOf)
@@ -72,17 +64,17 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		}
 	}
 	
-	private class BTreeIterator implements Iterator<T> {
+	class BTreeIterator implements Iterator<T> {
 		
-		private static final int INDEX_TYPE_CHILD = 0;
+		static final int INDEX_TYPE_CHILD = 0;
 		
-		private static final int INDEX_TYPE_KEY = 1;
+		static final int INDEX_TYPE_KEY = 1;
 		
-		private Map<Node<T>,Pair<Integer,Integer>> map;
+		Map<Node<T>,Pair<Integer,Integer>> map;
 		
-		private Stack<Node<T>> stack;
+		Stack<Node<T>> stack;
 		
-		public BTreeIterator() {
+		BTreeIterator() {
 			if (root != null && root.n > 0) {
 				this.map = new HashMap<>();
 				this.stack = new Stack<>();
@@ -142,10 +134,6 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		}
 	}
 	
-	private static final Node NULL_NODE = new Node(1, 0);
-	
-	private static final Pair NULL_PAIR = new Pair(NULL_NODE, 1);
-	
 	private final int threshold;
 	
 	private Comparator<T> comparator;
@@ -176,14 +164,6 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 			this.root = loadNode(tsManager.getRootPos());
 		}
 	}
-	
-//	boolean isLeaf;
-//	int n;
-//	T[] key;
-//	long pos;
-//	
-//	Node<T>[] child;
-//	long[] childPos;
 	
 	private byte[] generatePayload(Node<T> node) {
 		try (ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -217,7 +197,6 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		return generatePayload(new Node<T>(threshold, 0)).length;
 	}
 	
-	//this is scheduled to be refactored with a newly defined exception
 	private void saveNode(Node<T> node) {
 		byte[] payload = generatePayload(node);
 		try {
@@ -271,9 +250,9 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		return parent.child[index];
 	}
 	
-	private Pair<Node<T>,Integer> search(Node<T> node, T key) {
+	private long search(Node<T> node, T key) {
 		if (node == null) {
-			return NULL_PAIR;
+			return -1;
 		}
 		
 		int i = 0;
@@ -282,97 +261,123 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		}
 		
 		if (i < node.n && comparator.compare(key, node.key[i]) == 0) { //equal to the key
-			return new Pair<Node<T>,Integer>(node, i);
+			return node.recordPos[i];
 		} else if (node.isLeaf) { // could not find the key in the leaf node, there is no the key in BTree
-			return NULL_PAIR;
+			return -1;
 		} else { //less than the key
-//			return search(node.child[i], key);
 			return search(loadChild(node, i), key);
 		}
 	}
 	
 	public boolean contains(T key) {
-		return search(root, key) != NULL_PAIR ? true : false;
+		return search(root, key) != -1 ? true : false;
+	}
+	
+	private void assignKeyValue(Node<T> node, int index, T key, long recordPos) {
+		node.key[index] = key;
+		node.recordPos[index] = recordPos;
+	}
+	
+	private void assignChildValue(Node<T> node, int index, Node<T> child, long childPos) {
+		node.child[index] = child;
+		node.childPos[index] = childPos;
+	}
+	
+	private void assignKey(Node<T> dest, int destIndex, Node<T> src, int srcIndex) {
+		dest.key[destIndex] = src.key[srcIndex];
+		dest.recordPos[destIndex] = src.recordPos[srcIndex];
+	}
+	
+	private void assignChild(Node<T> dest, int destIndex, Node<T> src, int srcIndex) {
+		dest.child[destIndex] = src.child[srcIndex];
+		dest.childPos[destIndex] = src.childPos[srcIndex];
+	}
+	
+	private void transplantKey(Node<T> dest, int destIndex, Node<T> src, int srcIndex, int count) {
+		for (int index = 0; index < count; ++index) {
+			assignKey(dest, destIndex + index, src, srcIndex + index);
+		}
+	}
+	
+	private void transplantChild(Node<T> dest, int destIndex, Node<T> src, int srcIndex, int count) {
+		for (int index = 0; index < count; ++index) {
+			assignChild(dest, destIndex + index, src, srcIndex + index);
+		}
+	}
+	
+	private void moveBackKey(Node<T> node, int from) {
+		for (int index = node.n - 1; index >= from; --index) {
+			assignKey(node, index + 1, node, index);
+		}
+	}
+	
+	private void moveBackChild(Node<T> node, int from) {
+		for (int index = node.n; index >= from; --index) {
+			assignChild(node, index + 1, node, index);
+		}
+	}
+	
+	private void moveForwardKey(Node<T> node, int from) {
+		for (int index = from + 1; index < node.n; ++index) {
+			assignKey(node, index - 1, node, index);
+		}
+	}
+	
+	private void moveForwardChild(Node<T> node, int from) {
+		for (int index = from + 1; index <= node.n; ++index) {
+			assignChild(node, index - 1, node, index);
+		}
 	}
 	
 	//split successor node(node.child[index]) 
 	private void splitChild(Node<T> parent, int index) {
-//		Node<T> successor = node.child[index];
 		Node<T> successor = loadChild(parent, index);
-//		Node<T> sibling = new Node<T>(threshold);
 		Node<T> sibling = allocateNode(successor.isLeaf);
 		
-		// new sibling
-//		sibling.isLeaf = successor.isLeaf;
 		sibling.n = threshold - 1;
-		
-		for (int i = 0; i < threshold - 1; ++i) {
-			sibling.key[i] = successor.key[threshold + i];
-			sibling.recordPos[i] = successor.recordPos[threshold + i];
-		}
-		
+		transplantKey(sibling, 0, successor, threshold, threshold - 1);
 		if (!sibling.isLeaf) {
-			for (int i = 0; i < threshold; ++i) {
-				sibling.childPos[i] = successor.childPos[threshold + i];
-				sibling.child[i] = successor.child[threshold + i];
-			}
+			transplantChild(sibling, 0, successor, threshold, threshold);
 		}
 		
-		//parent
-		for (int i = parent.n - 1; i >= index; --i) {
-			parent.key[i + 1] = parent.key[i];
-			parent.recordPos[i + 1] = parent.recordPos[i];
-		}
-		
-		for (int i = parent.n; i > index; --i) {
-			parent.childPos[i + 1] = parent.childPos[i];
-			parent.child[i + 1] = parent.child[i];
-		}
-		
+		moveBackKey(parent, index);
+		moveBackChild(parent, index + 1);
 		parent.n++;
 		
-		parent.childPos[index + 1] = sibling.pos;
-		parent.child[index + 1] = sibling;
-		
-		parent.key[index] = successor.key[threshold - 1];
-		parent.recordPos[index] = successor.recordPos[threshold - 1];
-		
+		assignChildValue(parent, index + 1, sibling, sibling.pos);
+		assignKey(parent, index, successor, threshold - 1);
 		successor.n = threshold - 1;
 		
 		saveNode(parent);
 		saveNode(successor);
 		saveNode(sibling);
 	}
+
+	
 	
 	private void insert(Node<T> node, T key, long recordPos) {
 		if (node.isLeaf) {
 			int index = node.n - 1;
-			//while (index >= 0 && comparator.compare(key, node.key[index]) < 0) {	
 			while (index >= 0 && comparator.compare(key, node.key[index]) <= 0) {
-				node.key[index + 1] = node.key[index];
-				node.recordPos[index + 1] = node.recordPos[index];
+				assignKey(node, index + 1, node, index);
 				--index;
 			}
 			
-			node.key[index + 1] = key;
-			node.recordPos[index + 1] = recordPos;
+			assignKeyValue(node, index + 1, key, recordPos);
 			node.n++;
 			saveNode(node);
 		} else {
 			int index = node.n - 1;
-			//while (index >= 0 && comparator.compare(key, node.key[index]) < 0) {	
 			while (index >= 0 && comparator.compare(key, node.key[index]) <= 0) {
 				--index;
 			}
 			++index;
 			
-			//Node<T> successor = node.child[index];
 			Node<T> successor = loadChild(node, index);
 			if (successor.n == 2*threshold - 1) {
 				splitChild(node, index); 
 				if (comparator.compare(key, node.key[index]) > 0) {
 					successor = loadChild(node, index + 1);
-					//successor = node.child[index + 1];
 				}
 			}
 			
@@ -388,12 +393,8 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		
 		//in case that root node is full
 		if (root.n == 2*threshold - 1) {
-			//Node<T> newRoot = new Node<T>(threshold);
 			Node<T> newRoot = allocateNode(false);
-			//newRoot.n = 0;
-			//newRoot.isLeaf = false;
-			newRoot.child[0] = root;
-			newRoot.childPos[0] = root.pos;
+			assignChildValue(newRoot, 0, root, root.pos);
 			saveNode(newRoot);
 			
 			root = newRoot;
@@ -406,34 +407,17 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 	}
 	
 	private Node<T> merge(Node<T> parent, int index, Node<T> successor, Node<T> sibling) {
-		successor.key[successor.n] = parent.key[index];
-		successor.recordPos[successor.n] = parent.recordPos[index];
+		assignKey(successor, successor.n, parent, index);
 		successor.n++;
 		
-		for (int j = 0; j < sibling.n; ++j) {
-			successor.key[successor.n + j] = sibling.key[j];
-			successor.recordPos[successor.n + j] = sibling.recordPos[j];
-		}
-		
+		transplantKey(successor, successor.n, sibling, 0, sibling.n);
 		if (!sibling.isLeaf) {
-			for (int j = 0; j <= sibling.n; ++j) {
-				successor.childPos[successor.n + j] = sibling.childPos[j];
-				successor.child[successor.n + j] = sibling.child[j];
-			}
+			transplantChild(successor, successor.n, sibling, 0, sibling.n + 1);
 		}
-		
 		successor.n += sibling.n;
 		
-		for (int j = index + 1; j < parent.n; ++j) {
-			parent.key[j - 1] = parent.key[j];
-			parent.recordPos[j - 1] = parent.recordPos[j];
-		}
-		
-		for (int j = index + 2; j <= parent.n; ++j) {
-			parent.childPos[j - 1] = parent.childPos[j];
-			parent.child[j - 1] = parent.child[j];
-		}
-		
+		moveForwardKey(parent, index);
+		moveForwardChild(parent, index + 1);
 		parent.n--;
 		
 		//in case that the parent node becomes an empty root node
@@ -451,7 +435,6 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 	
 	private Pair<T,Long> findMaxKey(Node<T> node) {
 		while (!node.isLeaf) {
-			//node = node.child[node.n];
 			node = loadChild(node, node.n);
 		}
 		return new Pair<>(node.key[node.n - 1], node.recordPos[node.n - 1]); 
@@ -459,7 +442,6 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 	
 	private Pair<T,Long> findMinKey(Node<T> node) {
 		while (!node.isLeaf) {
-			//node = node.child[0];
 			node = loadChild(node, 0);
 		}
 		return new Pair<>(node.key[0], node.recordPos[0]); 
@@ -475,8 +457,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		if (node.isLeaf) {
 			if (i < node.n && comparator.compare(key, node.key[i]) == 0) {
 				while (i < node.n - 1) {
-					node.key[i] = node.key[i + 1];
-					node.recordPos[i] = node.recordPos[i + 1];
+					assignKey(node, i, node, i + 1);
 					++i;
 				}
 				node.n--;
@@ -488,93 +469,67 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		
 		// in case that the matched key is in an internal node
 		if (i < node.n && comparator.compare(key, node.key[i]) == 0) {
-//			Node<T> leftChild = node.child[i];
-//			Node<T> rightChild = node.child[i + 1];
 			Node<T> leftChild = loadChild(node, i);
 			Node<T> rightChild = loadChild(node, i + 1);
-			
+	
 			if (leftChild.n >= threshold) {
 				Pair<T,Long> predKey = findMaxKey(leftChild);
-				node.key[i] = predKey.first;
-				node.recordPos[i] = predKey.second;
+				assignKeyValue(node, i, predKey.first, predKey.second);
 				saveNode(node);
 				return delete(leftChild, predKey.first);
 			} else if (rightChild.n >= threshold) {
 				Pair<T,Long> succKey = findMinKey(rightChild);
-				node.key[i] = succKey.first;
-				node.recordPos[i] = succKey.second;
+				assignKeyValue(node, i, succKey.first, succKey.second);
 				saveNode(node);
 				return delete(rightChild, succKey.first);
 			} else {
-				Node<T> successor = merge(node, i, leftChild, rightChild);			
+				Node<T> successor = merge(node, i, leftChild, rightChild);	
 				return delete(successor, key);
 			}
 		} else { //(i < node.n && comparator.compare(key, node.key[i]) < 0) || (i == node.n)
-//			Node<T> successor = node.child[i];
 			Node<T> successor = loadChild(node, i);
 
 			if (successor.n < threshold) {
-//				Node<T> rightSibling = (i < node.n) ? node.child[i + 1] : null;
-//				Node<T> leftSibling = (i > 0) ? node.child[i - 1] : null;
 				Node<T> rightSibling = (i < node.n) ? loadChild(node, i + 1) : null;
 				Node<T> leftSibling = (i > 0) ? loadChild(node, i - 1) : null;
 				
 				if (rightSibling != null && rightSibling.n >= threshold) {
 					//transplant : parent -> successor
-					successor.key[successor.n] = node.key[i];
-					successor.recordPos[successor.n] = node.recordPos[i];
+					assignKey(successor, successor.n, node, i);
 					successor.n++;
 					
 					//transplant : sibling -> parent
-					node.key[i] = rightSibling.key[0];
-					node.recordPos[i] = rightSibling.recordPos[0];
+					assignKey(node, i, rightSibling, 0);
 					if (!rightSibling.isLeaf) {
-						successor.childPos[successor.n] = rightSibling.childPos[0];
-						successor.child[successor.n] = rightSibling.child[0];
+						assignChild(successor, successor.n, rightSibling, 0);
 					}
 					
 					//moving all elements one by one left-hand side
-					for (int j = 0; j < rightSibling.n - 1; ++j) {
-						rightSibling.key[j] = rightSibling.key[j + 1];
-						rightSibling.recordPos[j] = rightSibling.recordPos[j + 1];
-					}
+					moveForwardKey(rightSibling, 0);
 					if (!rightSibling.isLeaf) {
-						for (int j = 0; j < rightSibling.n; ++j) {
-							rightSibling.childPos[j] = rightSibling.childPos[j + 1];
-							rightSibling.child[j] = rightSibling.child[j + 1];
-						}
+						moveForwardChild(rightSibling, 0);
 					}
-					
 					rightSibling.n--;
+					
 					saveNode(node);
 					saveNode(successor);
 					saveNode(rightSibling);
 				} else if (leftSibling != null && leftSibling.n >= threshold) {
 					//move all elements one by one left-hand side
-					for (int j = successor.n - 1; j >= 0; --j) {
-						successor.key[j + 1] = successor.key[j];
-						successor.recordPos[j + 1] = successor.recordPos[j];
-					}
+					moveBackKey(successor, 0);
 					if (!successor.isLeaf) {
-						for (int j = successor.n; j >= 0; --j) {
-							successor.childPos[j + 1] = successor.childPos[j];
-							successor.child[j + 1] = successor.child[j];
-						}
+						moveBackChild(successor, 0);
 					}
-					
-					//transplant : parent -> successor
-					successor.key[0] = node.key[i - 1];
-					successor.recordPos[0] = node.recordPos[i - 1];
 					successor.n++;
 					
-					//transplant : left sibling -> parent
-					node.key[i - 1] = leftSibling.key[leftSibling.n - 1];
-					node.recordPos[i - 1] = leftSibling.recordPos[leftSibling.n - 1];
-					if (!leftSibling.isLeaf) {
-						successor.childPos[0] = leftSibling.childPos[leftSibling.n];
-						successor.child[0] = leftSibling.child[leftSibling.n];
-					}
+					//transplant : parent -> successor
+					assignKey(successor, 0, node, i - 1);
 					
+					//transplant : left sibling -> parent
+					assignKey(node, i - 1, leftSibling, leftSibling.n - 1);
+					if (!leftSibling.isLeaf) {
+						assignChild(node, 0, leftSibling, leftSibling.n);
+					}
 					leftSibling.n--;
 					
 					saveNode(node);
@@ -617,7 +572,6 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 				
 				if (!node.isLeaf) {
 					for (int i = 0; i <= node.n; ++i) {
-//						queue.add(node.child[i]);
 						queue.add(loadChild(node, i));
 					}
 				}
@@ -632,12 +586,10 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		} else {
 			int index = 0;
 			while (index < node.n) {
-//				printSequentialOrder(node.child[index]);
 				printSequentialOrder(loadChild(node, index));
 				System.out.print(node.key[index] + " ");
 				++index;
 			}
-//			printSequentialOrder(node.child[index]);
 			printSequentialOrder(loadChild(node, index));
 		}
 	}
