@@ -1,32 +1,104 @@
-package onthego.database.datastructure.memory;
+package onthego.database.core.index;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Random;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import onthego.database.core.datastructure.memory.BTree;
+import onthego.database.core.tablespace.manager.SingleTablespaceManager;
+import onthego.database.core.tablespace.manager.TablespaceManager;
+import onthego.database.core.tablespace.meta.SingleTablespaceHeader;
+import onthego.database.core.tablespace.meta.TablespaceHeader;
 
-public class BTreeTest {
+public class BTreeIndexTest {
 	
-	private static final int MAX_KEY_VALUE = 10000;
+	private static final int MAX_KEY_VALUE = 1000;
 	
 	private static final int MIN_KEY_VALUE = 1;
 	
 	private static final int BTREE_THRESHOLD = 128;
 	
-	private BTree<Integer> btree;
+	private static final byte[] MAGIC = {0x11, 0x10, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04};
+	
+	private static final String TABLESPACE_PATH = "./btree_index_tablespace.db";
+	
+	private BTreeIndex<Integer> btree;
+	
+	private TablespaceManager tsManager;
+	
+	@After
+	public void tearDown() throws Exception {
+		removeSingleTablespace();
+	}
+	
+	private void createBTreeIndex() {
+		try {
+			createSingleTablespace();
+			btree = new BTreeIndex<>(BTREE_THRESHOLD, tsManager);
+		} catch(IOException ioe) {
+			fail("failed to create a btree index.");
+		}
+	}
+	
+	private void createBTreeIndexWithData() {
+		try {
+			createSingleTablespace();
+			btree = new BTreeIndex<>(BTREE_THRESHOLD, tsManager);
+			for (int key = MIN_KEY_VALUE; key <= MAX_KEY_VALUE; ++key) {
+				btree.insert(key, key + 1);
+			}
+			//printLevelOrder();
+		} catch(IOException ioe) {
+			fail("failed to create a btree index.");
+		}
+	}
+	
+
+	private void createSingleTablespace() throws IOException {
+		removeSingleTablespace();
+		
+		TablespaceHeader tsHeader = new SingleTablespaceHeader.Builder()
+										.magic(MAGIC)
+										.chunkSize(16)
+										.crc(10)
+										.firstBlockPos(0)
+										.firstFreeBlockPos(0)
+										.tableRootPos(0)
+										.tableMetaInfoPos(0)
+										.recordCount(0)
+										.build();
+		
+		tsManager = SingleTablespaceManager.create(TABLESPACE_PATH, tsHeader);
+	}
+
+	private void removeSingleTablespace() {
+		if (tsManager != null) {
+			tsManager.close();
+		}
+		
+		File file = new File(TABLESPACE_PATH);
+		if (file.exists()) {
+			file.delete();
+		}
+	}
 	
 	@Test
 	public void testContains() {
-		btree = new BTree<>(BTREE_THRESHOLD);
+		createBTreeIndex();
+		
 		for (int key = MIN_KEY_VALUE; key <= MAX_KEY_VALUE; ++key) {
 			assertFalse(btree.contains(key));
-			btree.insert(key);
+			btree.insert(key, key + 1);
 			assertTrue(btree.contains(key));
 		}
 		
@@ -36,40 +108,43 @@ public class BTreeTest {
 
 	@Test
 	public void testForwardSequentialInsert() {
-		btree = new BTree<>(BTREE_THRESHOLD);
+		createBTreeIndex();
+		
 		for (int key = MIN_KEY_VALUE; key <= MAX_KEY_VALUE; ++key) {
 			assertFalse(btree.contains(key));
-			btree.insert(key);
+			btree.insert(key, key + 1);
 			assertTrue(btree.contains(key));
 		}
 	}
 	
 	@Test
 	public void testBackwardSequentialInsert() {
-		btree = new BTree<>(BTREE_THRESHOLD);
+		createBTreeIndex();
+		
 		for (int key = MAX_KEY_VALUE; key <= MIN_KEY_VALUE; --key) {
 			assertFalse(btree.contains(key));
-			btree.insert(key);
+			btree.insert(key, key + 1);
 			assertTrue(btree.contains(key));
 		}
 	}
 	
 	@Test
 	public void testRandomInsert() {
-		btree = new BTree<>(BTREE_THRESHOLD);
-		int[] used = new int[(MAX_KEY_VALUE - MIN_KEY_VALUE + 32) / 32];
+		createBTreeIndex();
 		
+		int[] used = new int[(MAX_KEY_VALUE - MIN_KEY_VALUE + 32) / 32];
 		for (int i = MIN_KEY_VALUE; i <= MAX_KEY_VALUE; ++i) {
 			int randomKey = getUnusedRandomNumeberInRange(MIN_KEY_VALUE, MAX_KEY_VALUE, used);
 			assertFalse(btree.contains(randomKey));
-			btree.insert(randomKey);
+			btree.insert(randomKey, randomKey + 1);
 			assertTrue(btree.contains(randomKey));
 		}
 	}
 	
 	@Test
 	public void testForwardSequentialDelete() {
-		createBTree();
+		createBTreeIndexWithData();
+		
 		for (int i = MIN_KEY_VALUE; i <= MAX_KEY_VALUE; ++i) {
 			assertTrue(btree.contains(i));
 			btree.delete(i);
@@ -80,7 +155,8 @@ public class BTreeTest {
 	
 	@Test
 	public void testBackwardSequentialDelete() {
-		createBTree();
+		createBTreeIndexWithData();
+		
 		for (int i = MAX_KEY_VALUE; i >= MIN_KEY_VALUE; --i) {
 			assertTrue(btree.contains(i));
 			btree.delete(i);
@@ -91,7 +167,8 @@ public class BTreeTest {
 	
 	@Test
 	public void testRandomDelete() {
-		createBTree();
+		createBTreeIndexWithData();
+		
 		int[] used = new int[(MAX_KEY_VALUE - MIN_KEY_VALUE + 32) / 32];
 		for (int i = MIN_KEY_VALUE; i <= MAX_KEY_VALUE; ++i) {
 			int randomKey = getUnusedRandomNumeberInRange(MIN_KEY_VALUE, MAX_KEY_VALUE, used);
@@ -103,7 +180,7 @@ public class BTreeTest {
 
 	@Test
 	public void testIterator() {
-		createBTree();
+		createBTreeIndexWithData();
 		
 		int key = MIN_KEY_VALUE;
 		Iterator<Integer> it = btree.iterator();
@@ -111,15 +188,7 @@ public class BTreeTest {
 			assertTrue(key++ == it.next());
 		}
 	}
-	
-	private void createBTree() {
-		btree = new BTree<>(BTREE_THRESHOLD);
-		for (int key = MIN_KEY_VALUE; key <= MAX_KEY_VALUE; ++key) {
-			btree.insert(key);
-		}
-		//printLevelOrder();
-	}
-	
+
 	private void printLevelOrder() {
 		System.out.println("Print Level Order => ");
 		btree.printLevelOrder();
@@ -131,9 +200,10 @@ public class BTreeTest {
 		int prevKey = 0;
 		while (it.hasNext()) {
 			int curKey = it.next();
-			//if (prevKey >= curKey) {
-			//	System.out.printf("prevKey = %d, curKey = %d\n", prevKey, curKey);
-			//}
+			if (prevKey >= curKey) {
+				System.out.printf("prevKey = %d, curKey = %d\n", prevKey, curKey);
+				btree.printLevelOrder();
+			}
 			assertTrue(prevKey < curKey);
 			prevKey = curKey;
 		}

@@ -38,9 +38,9 @@ public interface TablespaceManager {
 
 	void free(long blockPos);
 	
-	public byte[] readBlock(long blockPos) throws IOException;
+	public byte[] readBlock(long blockPos);
 	
-	public void writeBlock(long blockPos, byte[] payload) throws IOException;
+	public void writeBlock(long blockPos, byte[] payload);
 	
 	void close();
 

@@ -507,23 +507,31 @@ public class SingleTablespaceManager implements TablespaceManager {
 		System.out.println("=======================");
 	}
 	
-	public byte[] readBlock(long blockPos) throws IOException {
+	public byte[] readBlock(long blockPos) {
 		int size = getBlockSize(blockPos) - BLOCK_OVERHEAD_SIZE;
 		byte[] payload = new byte[size];
 		
-		io.seek(blockPos);
-		io.read(payload);
-		return payload;
+		try {
+			io.seek(blockPos);
+			io.read(payload);
+			return payload;
+		} catch (IOException ioe) {
+			throw new TablespaceManagerException(ioe);
+		}
 	}
 	
-	public void writeBlock(long blockPos, byte[] payload) throws IOException {
+	public void writeBlock(long blockPos, byte[] payload) {
 		int size = getBlockSize(blockPos) - BLOCK_OVERHEAD_SIZE;
 		if (size < payload.length) {
-			throw new TablespaceManagerException("The size of the payload to be written is larger than that of the target block.");
+			throw new TablespaceManagerException("The size(" + payload.length + ") of the payload to be written is larger than that(" +  size + ") of the target block.");
 		}
 		
-		io.seek(blockPos);
-		io.write(payload);
+		try {
+			io.seek(blockPos);
+			io.write(payload);
+		} catch (IOException ioe) {
+			throw new TablespaceManagerException(ioe);
+		}
 	}
 	
 	public void close() {
