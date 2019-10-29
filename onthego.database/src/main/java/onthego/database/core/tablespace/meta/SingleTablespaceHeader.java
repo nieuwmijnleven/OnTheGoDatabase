@@ -99,6 +99,8 @@ public class SingleTablespaceHeader implements TablespaceHeader {
 		this.recordCount = builder.recordCount;
 	}
 	
+	
+	//copy constructor
 	public SingleTablespaceHeader(TablespaceHeader tsHeader) {
 		this.magic = tsHeader.getMagic();
 		this.chunkSize = tsHeader.getChunkSize();
@@ -107,6 +109,7 @@ public class SingleTablespaceHeader implements TablespaceHeader {
 		this.firstFreeBlockPos = tsHeader.getFirstFreeBlockPos();
 		this.tableRootPos = tsHeader.getTableRootPos();
 		this.tableMetaInfoPos = tsHeader.getTableMetaInfoPos();
+		this.tableMetaInfo = tsHeader.getTableMetaInfo();
 		this.recordCount = tsHeader.getRecordCount();
 	}
 

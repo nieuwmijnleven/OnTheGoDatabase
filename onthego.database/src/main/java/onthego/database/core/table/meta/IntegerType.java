@@ -11,7 +11,7 @@ public class IntegerType extends Type {
 		if (length == 0) {
 			return "(^([-+]?[1-9]\\d*|0)$)";
 		} else if (length > 0) {
-			return "(^([-+]?[1-9]\\d{0,)" + length + "}|0)$";
+			return "(^([-+]?[1-9]\\d{0," + length + "}|0)$)";
 		} else {
 			throw new TypeException("The type length(" + length + ") is not valid.");
 		}

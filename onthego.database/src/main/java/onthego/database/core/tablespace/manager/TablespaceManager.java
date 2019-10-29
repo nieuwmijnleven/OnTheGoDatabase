@@ -2,6 +2,8 @@ package onthego.database.core.tablespace.manager;
 
 import java.io.IOException;
 
+import onthego.database.core.exception.MarginalPayloadSpaceException;
+import onthego.database.core.tablespace.meta.TableMetaInfo;
 import onthego.database.core.tablespace.meta.TablespaceHeader;
 
 public interface TablespaceManager {
@@ -17,6 +19,10 @@ public interface TablespaceManager {
 		
 		throw new IllegalArgumentException("Unsupported TablespaceManager type");
 	}*/
+	
+	void createTableInfoEntry(TableMetaInfo tableMetaInfo);
+	
+	void loadTableInfoEntry();
 
 	void loadHeader();
 
@@ -40,7 +46,7 @@ public interface TablespaceManager {
 	
 	public byte[] readBlock(long blockPos);
 	
-	public void writeBlock(long blockPos, byte[] payload);
+	public void writeBlock(long blockPos, byte[] payload) throws MarginalPayloadSpaceException;
 	
 	void close();
 

@@ -7,6 +7,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 
+import onthego.database.core.exception.MarginalPayloadSpaceException;
 import onthego.database.core.table.meta.Column;
 import onthego.database.core.table.meta.Type;
 import onthego.database.core.table.meta.TypeConstants;
@@ -27,9 +28,7 @@ public class SingleTablespaceManager implements TablespaceManager {
 	public static final int BLOCK_OVERHEAD_WITH_FREELIST_SIZE = BLOCK_OVERHEAD_SIZE + FREE_LIST_NODE_SIZE;
 	
 	static class FreeListNode {
-		
 		long prev;
-		
 		long next;
 		
 		FreeListNode(long prev, long next)
@@ -119,17 +118,17 @@ public class SingleTablespaceManager implements TablespaceManager {
 
 	//<table_name><column_count>
 	//<(row_id,type_id,length,decimal_len),(column_name,type_id,length,decimal_len),...>
-	private void createTableInfoEntry(TableMetaInfo tableMetaInfo) {
+	public void createTableInfoEntry(TableMetaInfo tableMetaInfo) {
 		try (ByteArrayOutputStream baout = new ByteArrayOutputStream();
-				    DataOutputStream out = new DataOutputStream(baout);) {
+			 DataOutputStream out = new DataOutputStream(baout)) {
 			
 			out.writeUTF(tableMetaInfo.getTableName());  //<tableName>
 			out.writeInt(tableMetaInfo.getColumnList().size());  //<column_count>
 			for (Column column : tableMetaInfo.getColumnList()) {   //<column_meta_info>
-				out.writeUTF(column.getName());
-				out.writeUTF(column.getType().getTypeConstant().toString());
-				out.writeInt(column.getType().getLength());
-				out.writeInt(column.getType().getDecimalLength());
+				out.writeUTF(column.getName());  //<column_name>
+				out.writeUTF(column.getType().getTypeConstant().toString());  //<column_type>
+				out.writeInt(column.getType().getLength());  //<column_type_length>
+				out.writeInt(column.getType().getDecimalLength());  //<column_decimal_length>
 			}
 			
 			out.flush();
@@ -145,7 +144,7 @@ public class SingleTablespaceManager implements TablespaceManager {
 		}
 	}
 
-	private void loadTableInfoEntry() {
+	public void loadTableInfoEntry() {
 		try {
 			io.seek(tsHeader.getTableMetaInfoPos());
 			
@@ -520,10 +519,10 @@ public class SingleTablespaceManager implements TablespaceManager {
 		}
 	}
 	
-	public void writeBlock(long blockPos, byte[] payload) {
+	public void writeBlock(long blockPos, byte[] payload) throws MarginalPayloadSpaceException {
 		int size = getBlockSize(blockPos) - BLOCK_OVERHEAD_SIZE;
 		if (size < payload.length) {
-			throw new TablespaceManagerException("The size(" + payload.length + ") of the payload to be written is larger than that(" +  size + ") of the target block.");
+			throw new MarginalPayloadSpaceException("The size(" + payload.length + ") of the payload to be written is larger than that(" +  size + ") of the target block.");
 		}
 		
 		try {

@@ -2,6 +2,7 @@ package onthego.database.tablespace.manager;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
@@ -21,9 +22,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import onthego.database.core.exception.MarginalPayloadSpaceException;
+import onthego.database.core.table.meta.Column;
+import onthego.database.core.table.meta.Type;
+import onthego.database.core.table.meta.TypeConstants;
 import onthego.database.core.tablespace.manager.SingleTablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManager;
+import onthego.database.core.tablespace.manager.TablespaceManagerException;
 import onthego.database.core.tablespace.meta.SingleTablespaceHeader;
+import onthego.database.core.tablespace.meta.TableMetaInfo;
 import onthego.database.core.tablespace.meta.TablespaceHeader;
 
 public class SingleTablespaceManagerTest {
@@ -111,6 +118,53 @@ public class SingleTablespaceManagerTest {
 	}
 	
 	@Test
+	public void testCreateTableMetaInfo() {
+		TableMetaInfo tableMetaInfo = generateTableMetaInfo();
+		
+		long tableMetaInfoPos = tsManager.getHeader().getTableMetaInfoPos();
+		try (RandomAccessFile io = new RandomAccessFile("./dummytable.db", "r")) {
+			io.seek(tableMetaInfoPos);
+
+			assertEquals(tableMetaInfo.getTableName(), io.readUTF());
+			assertEquals(tableMetaInfo.getColumnList().size(), io.readInt());
+			
+			for (int i = 0; i < tableMetaInfo.getColumnList().size(); ++i) {
+				Column column = tableMetaInfo.getColumnList().get(i);
+				assertEquals(column.getName(), io.readUTF());
+				assertEquals(column.getType().getTypeConstant(), TypeConstants.valueOf(io.readUTF()));
+				assertEquals(column.getType().getLength(), io.readInt());
+				assertEquals(column.getType().getDecimalLength(), io.readInt());
+			}
+		} catch(IOException ioe) {
+			fail("io error occurred : " + ioe.getMessage());
+		}
+	}
+
+	private TableMetaInfo generateTableMetaInfo() {
+		String tableName = "product";
+		
+		List<Column> columnList = new ArrayList<>();
+		columnList.add(new Column("serial_no", Type.of(TypeConstants.INTEGER, 10, 0)));
+		columnList.add(new Column("name", Type.of(TypeConstants.CHAR, 20, 0)));
+		columnList.add(new Column("price", Type.of(TypeConstants.NUMERIC, 10, 3)));
+		columnList.add(new Column("on_sale", Type.of(TypeConstants.BOOL, 0, 0)));
+		
+		TableMetaInfo tableMetaInfo = new TableMetaInfo(tableName, columnList);
+		tsManager.createTableInfoEntry(tableMetaInfo);
+		return tableMetaInfo;
+	}
+	
+	@Test
+	public void testLoadTableMetaInfo() {
+		TableMetaInfo generatedTableMetaInfo = generateTableMetaInfo();
+		
+		tsManager.loadTableInfoEntry();
+		TableMetaInfo loadedTableMetaInfo = tsManager.getHeader().getTableMetaInfo();
+		
+		assertTrue(loadedTableMetaInfo.equals(generatedTableMetaInfo));
+	}
+	
+	@Test
 	public void testSaveRootPos() {
 		tsManager.saveRootPos(Long.MAX_VALUE);
 		assertEquals(tsManager.getRootPos(), Long.MAX_VALUE);
@@ -160,8 +214,10 @@ public class SingleTablespaceManagerTest {
 				
 				byte[] payload = bout.toByteArray();
 				tsManager.writeBlock(blockPos, payload);
+			} catch(MarginalPayloadSpaceException ioe) {
+				throw new TablespaceManagerException(ioe);
 			} catch(IOException ioe) {
-				throw new RuntimeException(ioe);
+				throw new TablespaceManagerException(ioe);
 			}
 		});
 		
@@ -177,7 +233,7 @@ public class SingleTablespaceManagerTest {
 				assertEquals(din.readLong(), i + 4);
 				assertEquals(din.readLong(), i + 5);
 			} catch(IOException ioe) {
-				throw new RuntimeException(ioe);
+				throw new TablespaceManagerException(ioe);
 			}
 		});
 	}

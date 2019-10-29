@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Stack;
 
+import onthego.database.core.exception.MarginalPayloadSpaceException;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 
 public class BTreeIndex<T extends Comparable<? super T>> {
@@ -175,7 +176,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 				try {
 					out.writeObject(node.key[i]);
 				} catch (Exception e) {
-					throw new RuntimeException(e);
+					throw new BTreeIndexException(e);
 				}
 			}
 			
@@ -187,9 +188,10 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 				out.writeLong(node.childPos[i]);
 			}
 			
+			out.flush();
 			return bout.toByteArray();
 		} catch(IOException ioe) {
-			throw new RuntimeException(ioe);
+			throw new BTreeIndexException(ioe);
 		}
 	}
 	
@@ -201,11 +203,19 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		byte[] payload = generatePayload(node);
 		try {
 			tsManager.writeBlock(node.pos, payload);
-		} catch (Exception e) {
+		} catch (MarginalPayloadSpaceException e) {
+			retrySaveWithAdjustedSize(node, payload);
+		}
+	}
+
+	private void retrySaveWithAdjustedSize(Node<T> node, byte[] payload) {
+		try {
 			freeNode(node);
 			this.estimatedNodeSize = payload.length;
 			node.pos = tsManager.allocate(payload.length);
 			tsManager.writeBlock(node.pos, payload);
+		} catch (MarginalPayloadSpaceException e) {
+			throw new BTreeIndexException("it's impossible to save a payload into a tablespace");
 		}
 	}
 	
@@ -230,7 +240,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 			
 			return node;
 		} catch(Exception e) {
-			throw new RuntimeException(e);
+			throw new BTreeIndexException(e);
 		}
 	}
 	
@@ -388,7 +398,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 	public void insert(T key, long recordPos) {
 		//check if the input key has already been inserted into this index tree
 		if (contains(key)) {
-			throw new RuntimeException("duplicate key");
+			throw new BTreeIndexException("duplicate key");
 		}
 		
 		//in case that root node is full

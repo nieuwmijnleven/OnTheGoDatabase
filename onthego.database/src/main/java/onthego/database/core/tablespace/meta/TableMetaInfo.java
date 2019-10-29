@@ -30,4 +30,15 @@ public class TableMetaInfo {
 	public void setColumnList(List<Column> columnList) {
 		this.columnList = columnList;
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof TableMetaInfo)) {
+			return false;
+		}
+		
+		TableMetaInfo rhs = (TableMetaInfo)obj;
+		return this.tableName.equals(rhs.tableName) 
+			&& this.columnList.equals(rhs.columnList);
+	}
 }

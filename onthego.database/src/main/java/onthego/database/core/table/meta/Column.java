@@ -52,4 +52,17 @@ public class Column {
 	public void setNullable(boolean isNullable) {
 		this.isNullable = isNullable;
 	}
+	
+	@Override
+	public boolean equals(Object obj) {		
+		if (!(obj instanceof Column)) {
+			return false;
+		}
+		
+		Column rhs = (Column)obj;
+		return this.name.equals(rhs.name)
+			&& this.type.equals(rhs.type)
+			&& this.isKey == rhs.isKey
+			&& this.isNullable == rhs.isNullable;
+	}
 }

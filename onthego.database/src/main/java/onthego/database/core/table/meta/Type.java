@@ -10,8 +10,6 @@ public abstract class Type {
 	
 	protected int decimalLength;
 	
-	protected String valuePattern;
-	
 	protected Pattern pattern;
 	
 	public static Type of(TypeConstants typeConstants, int length, int decimalLength) {
@@ -49,6 +47,7 @@ public abstract class Type {
 	private void initialize(TypeConstants typeConstant, int length, int decimalLength) {
 		this.typeConstant = typeConstant;
 		this.length = length;
+		this.decimalLength = decimalLength;
 		generateValuePattern(length, decimalLength);
 	}
 	
@@ -85,6 +84,19 @@ public abstract class Type {
 
 	public int getDecimalLength() {
 		return this.decimalLength;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof Type)) {
+			return false;
+		}
+		
+		Type rhs = (Type)obj;
+		return this.typeConstant.equals(rhs.typeConstant) 
+			&& this.length == rhs.length
+			&& this.decimalLength == rhs.decimalLength
+			&& this.pattern.pattern().equals(rhs.pattern.pattern());
 	}
 	
 	@Override
