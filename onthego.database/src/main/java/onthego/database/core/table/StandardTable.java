@@ -3,6 +3,7 @@ package onthego.database.core.table;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -18,7 +19,7 @@ import onthego.database.core.tablespace.meta.SingleTablespaceHeader;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
 import onthego.database.core.tablespace.meta.TablespaceHeader;
 
-public class StandardTable {
+public class StandardTable implements Table {
 	
 	public static final String TABLESPACE_DIRECTORY_PATH = "./";
 	
@@ -31,6 +32,183 @@ public class StandardTable {
 	private Map<Column, BTreeIndex<String>> columnIndexMap;
 	
 	private Stack<List<Undo>> transactionStack;
+	
+	// To create a standard table
+	private StandardTable(String path, String tableName, TableMetaInfo tableMetaInfo) throws IOException {
+		TablespaceHeader tsHeader = new SingleTablespaceHeader.Builder()
+										.chunkSize(16)
+										.tableMetaInfo(tableMetaInfo)
+										.build();
+		this.tsManager = SingleTablespaceManager.create(path + File.separator + tableName + ".db", tsHeader);
+		this.clusteredIndex = new BTreeIndex<>(128, tsManager);
+		this.tableName = tableName;
+		this.transactionStack = new Stack<>();
+	}
+	
+	// To load a standard table
+	private StandardTable(String path, String tableName) throws IOException {
+		this.tsManager = SingleTablespaceManager.load(path + File.separator + tableName + ".db");
+		this.clusteredIndex = new BTreeIndex<>(128, tsManager);
+		this.tableName = tableName;
+		this.transactionStack = new Stack<>();
+	}
+	
+	public static Table create(String path, String tableName, TableMetaInfo tableMetaInfo) throws IOException {
+		return new StandardTable(path, tableName, tableMetaInfo);
+	}
+	
+	public static Table load(String path, String tableName) throws IOException {
+		return new StandardTable(path, tableName);
+	}
+	
+	private void addToTransactionStack(Undo undo) {
+		if (!transactionStack.isEmpty()) {
+			List<Undo> transactionList = transactionStack.peek();
+			transactionList.add(0, undo);
+		}
+	}
+	
+	@Override
+	public void begin() {
+		transactionStack.push(new LinkedList<Undo>());
+	}
+	
+	@Override
+	public void rollback(boolean all) {
+		if (transactionStack.isEmpty()) {
+			throw new IllegalStateException("There is no BEGIN for ROLLBACK");
+		}
+			
+		do {
+			List<Undo> transactionList = transactionStack.pop();
+			for (Undo undo : transactionList) {
+				undo.execute();
+			}
+		} while (all && !transactionStack.isEmpty());
+	}
+	
+	@Override
+	public void commit(boolean all) {
+		if (transactionStack.isEmpty()) {
+			throw new IllegalStateException("There is no BEGIN for ROLLBACK");
+		}
+		
+		if (all) {
+			this.transactionStack = new Stack<>();
+		} else {
+			List<Undo> transactionList = transactionStack.pop();
+			if (!transactionStack.isEmpty()) {
+				List<Undo> higherTransactionList = transactionStack.peek();
+				higherTransactionList.addAll(0, transactionList);
+			}
+		}
+	}
+
+	private long insertRecord(byte[] payload) {
+		long recordPos = tsManager.allocate(payload.length);
+		tsManager.writeBlock(recordPos, payload);
+		clusteredIndex.insert(recordPos, recordPos);
+		return recordPos;
+	}
+
+	private void deleteRecord(long recordPos) {
+		tsManager.free(recordPos);
+		clusteredIndex.delete(recordPos);
+	}
+	
+	@Override
+	public Table select(Filtration filtration) {
+		List<byte[]> filteredRecords = new ArrayList<>();
+		Cursor cursor = getCursor();
+		while (cursor.next()) {
+			if (filtration.filter(new Cursor[]{cursor})) {
+				filteredRecords.add(cursor.getRawRecord());
+			}
+		}
+		return new ResultTable(getTableName(), getColumnList(), filteredRecords);
+	}
+	
+	@Override
+	public long insert(Map<Column,String> values) {
+		int recordSize = Short.BYTES * (1 + values.size());
+		for (String value : values.values()) {
+			recordSize += Short.BYTES + StandardTableUtil.getUTFSize(value);
+		}
+		
+		ByteBuffer byteBuffer = ByteBuffer.allocate(recordSize);
+		StandardTableUtil.writeUnsignedShort(byteBuffer, getColumnCount());
+		
+		int offset = Short.BYTES * (1 + getColumnCount());
+		for (Column column : getColumnList()) {
+			StandardTableUtil.writeUnsignedShort(byteBuffer, offset);
+			
+			byteBuffer.mark();
+			byteBuffer.position(offset);
+			StandardTableUtil.writeUTF(byteBuffer, values.get(column));
+			byteBuffer.reset();
+			
+			offset += Short.BYTES + StandardTableUtil.getUTFSize(values.get(column));
+		}
+		
+		long recordPos = insertRecord(byteBuffer.array());
+		addToTransactionStack(new UndoInsert(recordPos));
+		return recordPos;
+	}
+	
+	@Override
+	public Cursor getCursor() {
+		return new StandardTableCursor();
+	}
+	
+	@Override
+	public int update(Filtration filtration) {
+		int updated = 0;
+		Cursor cursor = getCursor();
+		while (cursor.next()) {
+			if (filtration.filter(new Cursor[]{cursor})) {
+				filtration.update(cursor);
+				++updated;
+			}
+		}
+		return updated;
+	}
+	
+	@Override
+	public int delete(Filtration filtration) {
+		int deleted = 0;
+		Cursor cursor = getCursor();
+		while (cursor.next()) {
+			if (filtration.filter(new Cursor[]{cursor})) {
+				cursor.delete();
+				++deleted;
+			}
+		}
+		return deleted;
+	}
+
+	@Override
+	public String getTableName() {
+		return this.tableName;
+	}
+	
+	@Override
+	public TablespaceManager getTablespaceManager() {
+		return this.tsManager;
+	}
+	
+	@Override
+	public List<Column> getColumnList() {
+		return tsManager.getHeader().getTableMetaInfo().getColumnList();
+	}
+
+	@Override
+	public int getColumnCount() {
+		return tsManager.getHeader().getTableMetaInfo().getColumnCount();
+	}
+	
+	private int getColumnIndex(String name) {
+		return tsManager.getHeader().getTableMetaInfo().getColumnIndex(name);
+	}
 	
 	private final class UndoInsert implements Undo {
 		private long recordPos;
@@ -116,7 +294,7 @@ public class StandardTable {
 
 		@Override
 		public Iterator<String> getRecord() {
-			return new StandardRecordInterator(record, getColumnList().size());
+			return new StandardRecordIterator(record, getColumnList().size());
 		}
 
 		@Override
@@ -144,159 +322,5 @@ public class StandardTable {
 			deleteRecord(this.recordPos);
 			addToTransactionStack(new UndoDelete(record));
 		}
-	}
-	
-	// To create a standard table
-	private StandardTable(String path, String tableName, TableMetaInfo tableMetaInfo) throws IOException {
-		TablespaceHeader tsHeader = new SingleTablespaceHeader.Builder()
-										.chunkSize(16)
-										.tableMetaInfo(tableMetaInfo)
-										.build();
-		this.tsManager = SingleTablespaceManager.create(path + File.separator + tableName + ".db", tsHeader);
-		this.clusteredIndex = new BTreeIndex<>(128, tsManager);
-		this.tableName = tableName;
-		this.transactionStack = new Stack<>();
-	}
-	
-	// To load a standard table
-	private StandardTable(String path, String tableName) throws IOException {
-		this.tsManager = SingleTablespaceManager.load(path + File.separator + tableName + ".db");
-		this.clusteredIndex = new BTreeIndex<>(128, tsManager);
-		this.tableName = tableName;
-		this.transactionStack = new Stack<>();
-	}
-	
-	public static StandardTable create(String path, String tableName, TableMetaInfo tableMetaInfo) throws IOException {
-		return new StandardTable(path, tableName, tableMetaInfo);
-	}
-	
-	public static StandardTable load(String path, String tableName) throws IOException {
-		return new StandardTable(path, tableName);
-	}
-	
-	private void addToTransactionStack(Undo undo) {
-		if (!transactionStack.isEmpty()) {
-			List<Undo> transactionList = transactionStack.peek();
-			transactionList.add(0, undo);
-		}
-	}
-	
-	public void begin() {
-		transactionStack.push(new LinkedList<Undo>());
-	}
-	
-	public void rollback(boolean all) {
-		if (transactionStack.isEmpty()) {
-			throw new IllegalStateException("There is no BEGIN for ROLLBACK");
-		}
-			
-		do {
-			List<Undo> transactionList = transactionStack.pop();
-			for (Undo undo : transactionList) {
-				undo.execute();
-			}
-		} while (all && !transactionStack.isEmpty());
-	}
-	
-	public void commit(boolean all) {
-		if (transactionStack.isEmpty()) {
-			throw new IllegalStateException("There is no BEGIN for ROLLBACK");
-		}
-		
-		if (all) {
-			this.transactionStack = new Stack<>();
-		} else {
-			List<Undo> transactionList = transactionStack.pop();
-			if (!transactionStack.isEmpty()) {
-				List<Undo> higherTransactionList = transactionStack.peek();
-				higherTransactionList.addAll(0, transactionList);
-			}
-		}
-	}
-
-	private long insertRecord(byte[] payload) {
-		long recordPos = tsManager.allocate(payload.length);
-		tsManager.writeBlock(recordPos, payload);
-		clusteredIndex.insert(recordPos, recordPos);
-		return recordPos;
-	}
-
-	private void deleteRecord(long recordPos) {
-		tsManager.free(recordPos);
-		clusteredIndex.delete(recordPos);
-	}
-	
-	public long insert(Map<Column,String> values) {
-		int recordSize = Short.BYTES * (1 + values.size());
-		for (String value : values.values()) {
-			recordSize += Short.BYTES + StandardTableUtil.getUTFSize(value);
-		}
-		
-		ByteBuffer byteBuffer = ByteBuffer.allocate(recordSize);
-		StandardTableUtil.writeUnsignedShort(byteBuffer, getColumnCount());
-		
-		int offset = Short.BYTES * (1 + getColumnCount());
-		for (Column column : getColumnList()) {
-			StandardTableUtil.writeUnsignedShort(byteBuffer, offset);
-			
-			byteBuffer.mark();
-			byteBuffer.position(offset);
-			StandardTableUtil.writeUTF(byteBuffer, values.get(column));
-			byteBuffer.reset();
-			
-			offset += Short.BYTES + StandardTableUtil.getUTFSize(values.get(column));
-		}
-		
-		long recordPos = insertRecord(byteBuffer.array());
-		addToTransactionStack(new UndoInsert(recordPos));
-		return recordPos;
-	}
-	
-	public Cursor getCursor() {
-		return new StandardTableCursor();
-	}
-	
-	public int update(Filtration filtration) {
-		int updated = 0;
-		Cursor cursor = getCursor();
-		while (cursor.next()) {
-			if (filtration.filter(new Cursor[]{cursor})) {
-				filtration.update(cursor);
-				++updated;
-			}
-		}
-		return updated;
-	}
-	
-	public int delete(Filtration filtration) {
-		int deleted = 0;
-		Cursor cursor = getCursor();
-		while (cursor.next()) {
-			if (filtration.filter(new Cursor[]{cursor})) {
-				cursor.delete();
-				++deleted;
-			}
-		}
-		return deleted;
-	}
-
-	public String getTableName() {
-		return this.tableName;
-	}
-	
-	public TablespaceManager getTablespaceManager() {
-		return this.tsManager;
-	}
-	
-	public List<Column> getColumnList() {
-		return tsManager.getHeader().getTableMetaInfo().getColumnList();
-	}
-
-	public int getColumnCount() {
-		return tsManager.getHeader().getTableMetaInfo().getColumnCount();
-	}
-	
-	private int getColumnIndex(String name) {
-		return tsManager.getHeader().getTableMetaInfo().getColumnIndex(name);
 	}
 }

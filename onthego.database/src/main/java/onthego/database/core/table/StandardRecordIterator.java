@@ -2,7 +2,7 @@ package onthego.database.core.table;
 
 import java.util.Iterator;
 
-public class StandardRecordInterator implements Iterator<String> {
+public class StandardRecordIterator implements Iterator<String> {
 	
 	private byte[] record;
 	
@@ -10,7 +10,7 @@ public class StandardRecordInterator implements Iterator<String> {
 	
 	private int columnIndex;
 	
-	public StandardRecordInterator(byte[] record, int columnCount) {
+	public StandardRecordIterator(byte[] record, int columnCount) {
 		this.record = record;
 		this.columnCount = columnCount;
 		this.columnIndex = 0;

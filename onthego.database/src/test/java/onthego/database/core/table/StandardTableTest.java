@@ -24,7 +24,7 @@ import onthego.database.core.tablespace.meta.TableMetaInfo;
 
 public class StandardTableTest {
 	
-	private StandardTable table;
+	private Table table;
 
 	@Before
 	public void setUp() throws Exception {
@@ -56,6 +56,28 @@ public class StandardTableTest {
 		
 		TableMetaInfo tableMetaInfo = new TableMetaInfo(tableName, columnList);
 		return tableMetaInfo;
+	}
+	
+	@Test
+	public void testSelect() throws IOException {
+		Table resultTable = table.select(new Filtration.DefaultFilter() {
+			@Override
+			public boolean filter(Cursor[] cursor) {
+				return cursor[0].getColumn("serial_no").equals("100")
+					&& cursor[0].getColumn("name").equals("smartphone")
+					&& cursor[0].getColumn("price").equals("123.4")
+					&& cursor[0].getColumn("on_sale").equals("true");
+			}
+		});
+		
+		Cursor cursor = resultTable.getCursor();
+		cursor.next();
+		
+		Iterator<String> iterator = cursor.getRecord();
+		assertEquals("100", iterator.next());
+		assertEquals("smartphone", iterator.next());
+		assertEquals("123.4", iterator.next());
+		assertEquals("true", iterator.next());
 	}
 
 	@Test
