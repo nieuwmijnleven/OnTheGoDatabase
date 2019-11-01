@@ -34,9 +34,9 @@ public interface TablespaceManager {
 
 	void saveRootPos(long rootPos);
 
-	long getRecordCount();
+	int getRecordCount();
 
-	void increaseRecordCount();
+	int increaseRecordCount();
 
 	void decreaseRecordCount();
 

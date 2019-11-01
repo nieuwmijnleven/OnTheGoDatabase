@@ -34,8 +34,8 @@ public interface TablespaceHeader {
 	
 	public void setTableMetaInfo(TableMetaInfo tableMetaInfo);
 
-	long getRecordCount();
+	int getRecordCount();
 
-	void setRecordCount(long recordCount);
+	void setRecordCount(int recordCount);
 
 }

@@ -1,6 +1,6 @@
 package onthego.database.core.exception;
 
-public class MarginalPayloadSpaceException extends Exception {
+public class MarginalPayloadSpaceException extends RuntimeException {
 
 	public MarginalPayloadSpaceException() {}
 

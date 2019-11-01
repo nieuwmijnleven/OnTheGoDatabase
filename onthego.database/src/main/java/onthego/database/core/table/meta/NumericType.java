@@ -20,4 +20,13 @@ public class NumericType extends Type {
 			throw new TypeException("The type length(" + length + ", " + decimalLength + ") is not valid.");
 		}
 	}
+	
+//	@Override
+//	public void sendDataWriteRequest(DataOutput out, Object value) throws IOException {
+//		if (!(value instanceof Double)) {
+//			throw new RuntimeException("The value is not a proper type.");
+//		}
+//		
+//		out.writeDouble((Double)value);
+//	}
 }

@@ -21,7 +21,7 @@ public class SingleTablespaceHeader implements TablespaceHeader {
 	
 	private TableMetaInfo tableMetaInfo;
 	
-	private long recordCount;
+	private int recordCount;
 	
 	public static class Builder {
 		
@@ -37,9 +37,11 @@ public class SingleTablespaceHeader implements TablespaceHeader {
 		
 		private long tableRootPos = 0; 
 		
-		private long tableMetaInfoPos = 0;  
+		private long tableMetaInfoPos = 0;
 		
-		private long recordCount = 0;
+		private TableMetaInfo tableMetaInfo;
+		
+		private int recordCount = 0;
 		
 		public Builder() {}
 		
@@ -77,8 +79,13 @@ public class SingleTablespaceHeader implements TablespaceHeader {
 			this.tableMetaInfoPos = tableMetaInfoPos;
 			return this;
 		}
+		
+		public Builder tableMetaInfo(TableMetaInfo tableMetaInfo) {
+			this.tableMetaInfo = tableMetaInfo;
+			return this;
+		}
 
-		public Builder recordCount(long recordCount) {
+		public Builder recordCount(int recordCount) {
 			this.recordCount = recordCount;
 			return this;
 		}
@@ -96,9 +103,9 @@ public class SingleTablespaceHeader implements TablespaceHeader {
 		this.firstFreeBlockPos = builder.firstFreeBlockPos;
 		this.tableRootPos = builder.tableRootPos;
 		this.tableMetaInfoPos = builder.tableMetaInfoPos;
+		this.tableMetaInfo = builder.tableMetaInfo;
 		this.recordCount = builder.recordCount;
 	}
-	
 	
 	//copy constructor
 	public SingleTablespaceHeader(TablespaceHeader tsHeader) {
@@ -194,12 +201,12 @@ public class SingleTablespaceHeader implements TablespaceHeader {
 	}
 
 	@Override
-	public long getRecordCount() {
+	public int getRecordCount() {
 		return recordCount;
 	}
 
 	@Override
-	public void setRecordCount(long recordCount) {
+	public void setRecordCount(int recordCount) {
 		this.recordCount = recordCount;
 	}
 }

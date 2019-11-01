@@ -1,5 +1,8 @@
 package onthego.database.core.table.meta;
 
+import java.io.DataOutput;
+import java.io.IOException;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 public abstract class Type {
@@ -51,6 +54,10 @@ public abstract class Type {
 		generateValuePattern(length, decimalLength);
 	}
 	
+//	public abstract Object makeReadRequest(DataInput in) throws IOException; 
+//	
+//	public abstract void sendDataWriteRequest(DataOutput out, Object value) throws IOException; 
+	
 	protected abstract String generateValuePatternString(int length, int decimalLength);
 	
 	private void generateValuePattern(int length, int decimalLength) {
@@ -97,6 +104,11 @@ public abstract class Type {
 			&& this.length == rhs.length
 			&& this.decimalLength == rhs.decimalLength
 			&& this.pattern.pattern().equals(rhs.pattern.pattern());
+	}
+	
+	@Override
+	public int hashCode() {
+		return Objects.hash(typeConstant, length, decimalLength, pattern.pattern());
 	}
 	
 	@Override

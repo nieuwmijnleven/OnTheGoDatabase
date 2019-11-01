@@ -1,5 +1,8 @@
 package onthego.database.core.table.meta;
 
+import java.io.DataOutput;
+import java.io.IOException;
+
 public class IntegerType extends Type {
 
 	public IntegerType(int length) {
@@ -16,4 +19,13 @@ public class IntegerType extends Type {
 			throw new TypeException("The type length(" + length + ") is not valid.");
 		}
 	}
+	
+//	@Override
+//	public void sendDataWriteRequest(DataOutput out, Object value) throws IOException {
+//		if (!(value instanceof Integer)) {
+//			throw new RuntimeException("The value is not a proper type.");
+//		}
+//		
+//		out.writeInt((Integer)value);
+//	}
 }

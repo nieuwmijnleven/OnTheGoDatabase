@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import onthego.database.core.exception.MarginalPayloadSpaceException;
+import onthego.database.core.index.BTreeIndex;
 import onthego.database.core.table.meta.Column;
 import onthego.database.core.table.meta.Type;
 import onthego.database.core.table.meta.TypeConstants;
@@ -27,6 +28,10 @@ public class SingleTablespaceManager implements TablespaceManager {
 	
 	public static final int BLOCK_OVERHEAD_WITH_FREELIST_SIZE = BLOCK_OVERHEAD_SIZE + FREE_LIST_NODE_SIZE;
 	
+	private RandomAccessFile io;
+	
+	private TablespaceHeader tsHeader;
+	
 	static class FreeListNode {
 		long prev;
 		long next;
@@ -37,10 +42,6 @@ public class SingleTablespaceManager implements TablespaceManager {
 			this.next = next;
 		}
 	};
-	
-	private RandomAccessFile io;
-	
-	private TablespaceHeader tsHeader;
 	
 	public static TablespaceManager create(String tsPath, TablespaceHeader tsHeader) throws IOException {
 		return new SingleTablespaceManager(tsPath, tsHeader);
@@ -54,11 +55,13 @@ public class SingleTablespaceManager implements TablespaceManager {
 		this.io = new RandomAccessFile(tsPath, "rws");
 		this.tsHeader = tsHeader;
 		initialize();
+		createTableInfoEntry(tsHeader.getTableMetaInfo());
 	}
 	
 	private SingleTablespaceManager(String tsPath) throws IOException {
 		this.io = new RandomAccessFile(tsPath, "rws");
 		loadHeader();
+		loadTableInfoEntry();
 	}
 		
 	@Override
@@ -77,7 +80,7 @@ public class SingleTablespaceManager implements TablespaceManager {
 							.firstFreeBlockPos(io.readLong())
 							.tableRootPos(io.readLong())
 							.tableMetaInfoPos(io.readLong())
-							.recordCount(io.readLong())
+							.recordCount(io.readInt())
 							.build();
 			
 		} catch(Exception ioe) {
@@ -388,14 +391,15 @@ public class SingleTablespaceManager implements TablespaceManager {
 	}
 
 	@Override
-	public long getRecordCount() {
+	public int getRecordCount() {
 		return tsHeader.getRecordCount();
 	}
 
 	@Override
-	public void increaseRecordCount() {
+	public int increaseRecordCount() {
 		tsHeader.setRecordCount(tsHeader.getRecordCount() + 1);
 		saveHeader();
+		return tsHeader.getRecordCount();
 	}
 	
 	@Override
