@@ -1,6 +1,6 @@
 package onthego.database.core.table.meta;
 
-public class Column {
+public class ColumnType {
 	
 	private String name;
 	
@@ -10,15 +10,19 @@ public class Column {
 	
 	private boolean isNullable;
 	
-	public Column(String name, Type type, boolean isKey, boolean isNullable) {
+	public ColumnType(String name, Type type, boolean isKey, boolean isNullable) {
 		this.name = name;
 		this.type = type;
 		this.isKey = isKey;
 		this.isNullable = isNullable;
 	}
 	
-	public Column(String name, Type type) {
+	public ColumnType(String name, Type type) {
 		this(name, type, false, false);
+	}
+	
+	public ColumnType(String name) {
+		this(name, new NullType(), false, false);
 	}
 	
 	public Type getType() {
@@ -55,11 +59,11 @@ public class Column {
 	
 	@Override
 	public boolean equals(Object obj) {		
-		if (!(obj instanceof Column)) {
+		if (!(obj instanceof ColumnType)) {
 			return false;
 		}
 		
-		Column rhs = (Column)obj;
+		ColumnType rhs = (ColumnType)obj;
 		return this.name.equals(rhs.name)
 			&& this.type.equals(rhs.type)
 			&& this.isKey == rhs.isKey

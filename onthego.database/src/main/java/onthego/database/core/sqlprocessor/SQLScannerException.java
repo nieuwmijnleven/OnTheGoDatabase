@@ -1,6 +1,6 @@
-package onthego.database.core.sqlparser;
+package onthego.database.core.sqlprocessor;
 
-public class SQLScannerException extends Exception {
+public class SQLScannerException extends SQLProcessorException {
 
 	public SQLScannerException() {
 		// TODO Auto-generated constructor stub

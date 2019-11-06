@@ -7,32 +7,32 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import onthego.database.core.table.meta.Column;
+import onthego.database.core.table.meta.ColumnType;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 
 public final class ResultTable implements Table {
 	
 	private final String tableName;
 	
-	private final List<Column> columnList;
+	private final List<ColumnType> columnTypeList;
 	
 	private final List<byte[]> records;
 	
-	private final Map<String,Integer> columnIndexMap;
+	private final Map<String,Integer> columnTypeIndexMap;
 	
-	public ResultTable(String tableName, List<Column> columnList, List<byte[]> records) {
+	public ResultTable(String tableName, List<ColumnType> columnList, List<byte[]> records) {
 		this.tableName = tableName;
-		this.columnList = columnList;
+		this.columnTypeList = columnList;
 		this.records = records;
-		this.columnIndexMap = new HashMap<>();
+		this.columnTypeIndexMap = new HashMap<>();
 		
 		initialize();
 	}
 
 	private void initialize() {
-		for (int i = 0; i < this.columnList.size(); ++i) {
-			Column column = this.columnList.get(i);
-			this.columnIndexMap.put(column.getName(), i);
+		for (int i = 0; i < this.columnTypeList.size(); ++i) {
+			ColumnType column = this.columnTypeList.get(i);
+			this.columnTypeIndexMap.put(column.getName(), i);
 		}
 	}
 	
@@ -58,7 +58,7 @@ public final class ResultTable implements Table {
 	}
 
 	@Override
-	public long insert(Map<Column, String> values) {
+	public long insert(Map<ColumnType, String> values) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -88,13 +88,13 @@ public final class ResultTable implements Table {
 	}
 
 	@Override
-	public List<Column> getColumnList() {
-		return Collections.unmodifiableList(this.columnList);
+	public List<ColumnType> getColumnList() {
+		return Collections.unmodifiableList(this.columnTypeList);
 	}
 
 	@Override
 	public int getColumnCount() {
-		return this.columnList.size();
+		return this.columnTypeList.size();
 	}
 	
 	private class ResultTableCursor implements Cursor {
@@ -116,13 +116,23 @@ public final class ResultTable implements Table {
 			}
 			return false;
 		}
+		
+		@Override
+		public ColumnType getColumnType(String columnName) {
+			isValidColumnName(columnName);
+			return columnTypeList.get(columnTypeIndexMap.get(columnName));
+		}
 
 		@Override
 		public String getColumn(String columnName) {
-			if (!columnIndexMap.containsKey(columnName)) {
+			isValidColumnName(columnName);
+			return StandardTableUtil.readColumnData(record, columnTypeIndexMap.get(columnName));
+		}
+		
+		private void isValidColumnName(String columnName) {
+			if (!columnTypeIndexMap.containsKey(columnName)) {
 				throw new IllegalArgumentException(columnName + " is not a valid column name");
 			}
-			return StandardTableUtil.readColumnData(record, columnIndexMap.get(columnName));
 		}
 
 		@Override

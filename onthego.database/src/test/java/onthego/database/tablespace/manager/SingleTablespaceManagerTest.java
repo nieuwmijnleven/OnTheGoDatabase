@@ -23,7 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import onthego.database.core.exception.MarginalPayloadSpaceException;
-import onthego.database.core.table.meta.Column;
+import onthego.database.core.table.meta.ColumnType;
 import onthego.database.core.table.meta.Type;
 import onthego.database.core.table.meta.TypeConstants;
 import onthego.database.core.tablespace.manager.SingleTablespaceManager;
@@ -129,7 +129,7 @@ public class SingleTablespaceManagerTest {
 			assertEquals(tableMetaInfo.getColumnList().size(), io.readInt());
 			
 			for (int i = 0; i < tableMetaInfo.getColumnList().size(); ++i) {
-				Column column = tableMetaInfo.getColumnList().get(i);
+				ColumnType column = tableMetaInfo.getColumnList().get(i);
 				assertEquals(column.getName(), io.readUTF());
 				assertEquals(column.getType().getTypeConstant(), TypeConstants.valueOf(io.readUTF()));
 				assertEquals(column.getType().getLength(), io.readInt());
@@ -143,11 +143,11 @@ public class SingleTablespaceManagerTest {
 	private TableMetaInfo generateTableMetaInfo() {
 		String tableName = "product";
 		
-		List<Column> columnList = new ArrayList<>();
-		columnList.add(new Column("serial_no", Type.of(TypeConstants.INTEGER, 10, 0)));
-		columnList.add(new Column("name", Type.of(TypeConstants.CHAR, 20, 0)));
-		columnList.add(new Column("price", Type.of(TypeConstants.NUMERIC, 10, 3)));
-		columnList.add(new Column("on_sale", Type.of(TypeConstants.BOOL, 0, 0)));
+		List<ColumnType> columnList = new ArrayList<>();
+		columnList.add(new ColumnType("serial_no", Type.of(TypeConstants.INTEGER, 10, 0)));
+		columnList.add(new ColumnType("name", Type.of(TypeConstants.CHAR, 20, 0)));
+		columnList.add(new ColumnType("price", Type.of(TypeConstants.NUMERIC, 10, 3)));
+		columnList.add(new ColumnType("on_sale", Type.of(TypeConstants.BOOL, 0, 0)));
 		
 		TableMetaInfo tableMetaInfo = new TableMetaInfo(tableName, columnList);
 		tsManager.createTableInfoEntry(tableMetaInfo);

@@ -3,7 +3,7 @@ package onthego.database.core.table;
 import java.util.List;
 import java.util.Map;
 
-import onthego.database.core.table.meta.Column;
+import onthego.database.core.table.meta.ColumnType;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 
 public interface Table {
@@ -16,7 +16,7 @@ public interface Table {
 	
 	Table select(Filtration filtration);
 
-	long insert(Map<Column, String> values);
+	long insert(Map<ColumnType, String> values);
 
 	Cursor getCursor();
 
@@ -28,7 +28,7 @@ public interface Table {
 
 	TablespaceManager getTablespaceManager();
 
-	List<Column> getColumnList();
+	List<ColumnType> getColumnList();
 
 	int getColumnCount();
 }

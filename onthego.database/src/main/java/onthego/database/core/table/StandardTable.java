@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Stack;
 
 import onthego.database.core.index.BTreeIndex;
-import onthego.database.core.table.meta.Column;
+import onthego.database.core.table.meta.ColumnType;
 import onthego.database.core.tablespace.manager.SingleTablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 import onthego.database.core.tablespace.meta.SingleTablespaceHeader;
@@ -29,7 +29,7 @@ public class StandardTable implements Table {
 	
 	private BTreeIndex<Long> clusteredIndex;
 	
-	private Map<Column, BTreeIndex<String>> columnIndexMap;
+	private Map<ColumnType, BTreeIndex<String>> columnIndexMap;
 	
 	private Stack<List<Undo>> transactionStack;
 	
@@ -129,7 +129,7 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
-	public long insert(Map<Column,String> values) {
+	public long insert(Map<ColumnType,String> values) {
 		int recordSize = Short.BYTES * (1 + values.size());
 		for (String value : values.values()) {
 			recordSize += Short.BYTES + StandardTableUtil.getUTFSize(value);
@@ -139,7 +139,7 @@ public class StandardTable implements Table {
 		StandardTableUtil.writeUnsignedShort(byteBuffer, getColumnCount());
 		
 		int offset = Short.BYTES * (1 + getColumnCount());
-		for (Column column : getColumnList()) {
+		for (ColumnType column : getColumnList()) {
 			StandardTableUtil.writeUnsignedShort(byteBuffer, offset);
 			
 			byteBuffer.mark();
@@ -197,7 +197,7 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
-	public List<Column> getColumnList() {
+	public List<ColumnType> getColumnList() {
 		return tsManager.getHeader().getTableMetaInfo().getColumnList();
 	}
 
@@ -281,9 +281,16 @@ public class StandardTable implements Table {
 			}
 			return false;
 		}
+		
+		@Override
+		public ColumnType getColumnType(String columnName) {
+//			isValidColumnName(columnName);
+			return getColumnList().get(getColumnIndex(columnName));
+		}
 
 		@Override
 		public String getColumn(String columnName) {
+//			isValidColumnName(columnName);
 			return StandardTableUtil.readColumnData(record, getColumnIndex(columnName));
 		}
 		

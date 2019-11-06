@@ -17,7 +17,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import onthego.database.core.table.meta.Column;
+import onthego.database.core.table.meta.ColumnType;
 import onthego.database.core.table.meta.Type;
 import onthego.database.core.table.meta.TypeConstants;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
@@ -31,8 +31,8 @@ public class StandardTableTest {
 		TableMetaInfo tableMetaInfo = generateTableMetaInfo();
 		table = StandardTable.create(".", "test", tableMetaInfo);
 		
-		List<Column> columnList = tableMetaInfo.getColumnList();
-		Map<Column,String> values = Map.of(columnList.get(0), "100", columnList.get(1), "smartphone", columnList.get(2), "123.4", columnList.get(3), "true");
+		List<ColumnType> columnList = tableMetaInfo.getColumnList();
+		Map<ColumnType,String> values = Map.of(columnList.get(0), "100", columnList.get(1), "smartphone", columnList.get(2), "123.4", columnList.get(3), "true");
 		
 		table.insert(values);
 	}
@@ -48,11 +48,11 @@ public class StandardTableTest {
 	private TableMetaInfo generateTableMetaInfo() {
 		String tableName = "product";
 		
-		List<Column> columnList = new ArrayList<>();
-		columnList.add(new Column("serial_no", Type.of(TypeConstants.INTEGER, 10, 0)));
-		columnList.add(new Column("name", Type.of(TypeConstants.CHAR, 20, 0)));
-		columnList.add(new Column("price", Type.of(TypeConstants.NUMERIC, 10, 3)));
-		columnList.add(new Column("on_sale", Type.of(TypeConstants.BOOL, 0, 0)));
+		List<ColumnType> columnList = new ArrayList<>();
+		columnList.add(new ColumnType("serial_no", Type.of(TypeConstants.INTEGER, 10, 0)));
+		columnList.add(new ColumnType("name", Type.of(TypeConstants.CHAR, 20, 0)));
+		columnList.add(new ColumnType("price", Type.of(TypeConstants.NUMERIC, 10, 3)));
+		columnList.add(new ColumnType("on_sale", Type.of(TypeConstants.BOOL, 0, 0)));
 		
 		TableMetaInfo tableMetaInfo = new TableMetaInfo(tableName, columnList);
 		return tableMetaInfo;
