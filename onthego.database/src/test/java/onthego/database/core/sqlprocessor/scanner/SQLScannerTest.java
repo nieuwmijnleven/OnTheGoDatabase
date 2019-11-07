@@ -16,6 +16,8 @@ public class SQLScannerTest {
 									 + "where where_cond = 100";
 	@Before
 	public void setUp() throws Exception {
+		TokenManager.clear();
+		
 		TokenManager.createManagedToken("COMMA", "','");
 		TokenManager.createManagedToken("EQUAL", "'='");
 		TokenManager.createManagedToken("SELECT", "select");
@@ -31,10 +33,10 @@ public class SQLScannerTest {
 		assertEquals(Token.Type.REGEX, TokenManager.getToken("IDENTIFIER").getType());
 	}
 	
-	@After
-	public void tearDown() throws Exception {
-		TokenManager.clear();
-	}
+//	@After
+//	public void tearDown() throws Exception {
+//		TokenManager.clear();
+//	}
 
 	@Test
 	public void testNext() throws SQLScannerException {
@@ -85,7 +87,7 @@ public class SQLScannerTest {
 		assertEquals(Token.Type.REGEX, TokenManager.getToken("NUMBER").getType());
 		
 		SQLScanner scanner = new SQLScanner(statement);
-		assertEquals("select", scanner.next(Token.NULL_TOKEN).lexeme());
+		assertEquals("select", scanner.next(Token.BEGIN_TOKEN).lexeme());
 		assertEquals("select_column1", scanner.next(TokenManager.getToken("SELECT")).lexeme());
 		assertEquals(",", scanner.next(TokenManager.getToken("IDENTIFIER")).lexeme());
 		assertEquals("select_column2", scanner.next(TokenManager.getToken("COMMA")).lexeme());
@@ -94,7 +96,7 @@ public class SQLScannerTest {
 		try {
 			scanner.next(TokenManager.getToken("SELECT"));
 		} catch (SQLScannerException se) {
-			assertEquals(se.getMessage(), "The token(Token [type='WORD', pattern='select', lexeme='select']) is required.");
+			assertEquals(se.getMessage(), "The token(select) is required.");
 			assertEquals("table", scanner.next(TokenManager.getToken("FROM")).lexeme());
 		}
 		

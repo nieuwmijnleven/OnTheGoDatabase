@@ -17,6 +17,8 @@ public class SQLParserTest {
 
 	@Before
 	public void setUp() throws Exception {
+		TokenManager.clear();
+		
 		TokenManager.createManagedToken("COMMA", "','");
 		TokenManager.createManagedToken("EQUAL", "'='");
 		TokenManager.createManagedToken("LP", "'('");
@@ -56,10 +58,10 @@ public class SQLParserTest {
 		assertEquals(Token.Type.REGEX, TokenManager.getToken("IDENTIFIER").getType());
 	}
 
-	@After
-	public void tearDown() throws Exception {
-		TokenManager.clear();
-	}
+//	@After
+//	public void tearDown() throws Exception {
+//		TokenManager.clear();
+//	}
 	
 	private void testDoParse(String whereCond, boolean result) throws Exception {
 		SQLScanner scanner = new SQLScanner(whereCond);

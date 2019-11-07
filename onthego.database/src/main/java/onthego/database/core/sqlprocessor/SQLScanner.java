@@ -11,9 +11,7 @@ public class SQLScanner {
 	
 	private Scanner scanner;
 	
-	private Token currentToken = Token.NULL_TOKEN;
-	
-	private Token previousToken;
+	private Token currentToken = Token.BEGIN_TOKEN;
 	
 	private String currentLine;
 	
@@ -27,7 +25,7 @@ public class SQLScanner {
 	}
 	
 	public Token next() throws SQLScannerException {
-		if (currentToken != previousToken) {
+		if (currentToken != Token.NULL_TOKEN) {
 			if (currentLine.length() == currentLinePos) {
 				if (!readLine()) {
 					return Token.NULL_TOKEN;
@@ -35,14 +33,14 @@ public class SQLScanner {
 			}
 			
 			while (Character.isWhitespace(currentLine.charAt(currentLinePos))) {
-				if (currentLine.length() == currentLinePos++) {
+				if (currentLine.length() == ++currentLinePos) {
 					if (!readLine()) {
 						return Token.NULL_TOKEN;
 					}
 				}
 			}
 			
-			previousToken = currentToken;
+			currentToken = Token.NULL_TOKEN;
 			for (Iterator<Token> it = TokenManager.iterator(); it.hasNext();) {
 				Token token = it.next();
 				if (token.match(currentLine, currentLinePos)) {
@@ -53,7 +51,7 @@ public class SQLScanner {
 				}
 			}
 			
-			if (previousToken == currentToken) {
+			if (currentToken == Token.NULL_TOKEN) {
 				StringBuilder message = new StringBuilder();
 				message.append("Line : ").append(currentLineNumber)
 				.append(", Postion: ").append(currentLinePos).append("\n")

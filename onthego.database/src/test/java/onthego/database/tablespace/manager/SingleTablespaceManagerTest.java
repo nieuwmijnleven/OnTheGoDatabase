@@ -76,6 +76,20 @@ public class SingleTablespaceManagerTest {
 		}
 	}
 	
+	private TableMetaInfo generateTableMetaInfo() {
+		String tableName = "product";
+		
+		List<ColumnType> columnList = new ArrayList<>();
+		columnList.add(new ColumnType("serial_no", Type.of(TypeConstants.INTEGER, 10, 0)));
+		columnList.add(new ColumnType("name", Type.of(TypeConstants.CHAR, 20, 0)));
+		columnList.add(new ColumnType("price", Type.of(TypeConstants.NUMERIC, 10, 3)));
+		columnList.add(new ColumnType("on_sale", Type.of(TypeConstants.BOOL, 0, 0)));
+		
+		TableMetaInfo tableMetaInfo = new TableMetaInfo(tableName, columnList);
+		tsManager.createTableInfoEntry(tableMetaInfo);
+		return tableMetaInfo;
+	}
+	
 	@Test
 	public void testCreate() {
 		try (RandomAccessFile io = new RandomAccessFile("./dummytable.db", "r")) {
@@ -140,20 +154,6 @@ public class SingleTablespaceManagerTest {
 		}
 	}
 
-	private TableMetaInfo generateTableMetaInfo() {
-		String tableName = "product";
-		
-		List<ColumnType> columnList = new ArrayList<>();
-		columnList.add(new ColumnType("serial_no", Type.of(TypeConstants.INTEGER, 10, 0)));
-		columnList.add(new ColumnType("name", Type.of(TypeConstants.CHAR, 20, 0)));
-		columnList.add(new ColumnType("price", Type.of(TypeConstants.NUMERIC, 10, 3)));
-		columnList.add(new ColumnType("on_sale", Type.of(TypeConstants.BOOL, 0, 0)));
-		
-		TableMetaInfo tableMetaInfo = new TableMetaInfo(tableName, columnList);
-		tsManager.createTableInfoEntry(tableMetaInfo);
-		return tableMetaInfo;
-	}
-	
 	@Test
 	public void testLoadTableMetaInfo() {
 		TableMetaInfo generatedTableMetaInfo = generateTableMetaInfo();

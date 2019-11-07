@@ -55,7 +55,10 @@ public class SingleTablespaceManager implements TablespaceManager {
 		this.io = new RandomAccessFile(tsPath, "rws");
 		this.tsHeader = tsHeader;
 		initialize();
-		createTableInfoEntry(tsHeader.getTableMetaInfo());
+		
+		if (tsHeader.getTableMetaInfo() != null) {
+			createTableInfoEntry(tsHeader.getTableMetaInfo());
+		}
 	}
 	
 	private SingleTablespaceManager(String tsPath) throws IOException {

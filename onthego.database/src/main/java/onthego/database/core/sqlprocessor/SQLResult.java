@@ -12,58 +12,101 @@ public class SQLResult {
 	
 	private CommandType command;
 	
+	private String database;
+	
 	private String table;
 	
 	private List<ColumnType> columns;
 	
 	private List<Expression> values;
 	
-	private List<Expression> expressions;
+	private Expression where;
 	
-	public SQLResult(CommandType command, String table, List<ColumnType> columns, List<Expression> values,
-			List<Expression> expressions) {
-		this.command = command;
-		this.table = table;
-		this.columns = columns;
-		this.values = values;
-		this.expressions = expressions;
-	}
+	public static class SQLResultBuilder {
+		
+		private CommandType command;
+		
+		private String database;
+		
+		private String table;
+		
+		private List<ColumnType> columns = Collections.emptyList();
+		
+		private List<Expression> values = Collections.emptyList();
+		
+		private Expression where = Expression.NULL_EXPRESSION;
+		
+		public SQLResultBuilder() {}
 
-	public SQLResult(CommandType command, String table, List<ColumnType> columns, List<Expression> values) {
-		this(command, table, columns, values, Collections.emptyList());
-	}
-	
-	public SQLResult(CommandType command, String table, List<ColumnType> columns) {
-		this(command, table, columns, Collections.emptyList());
-	}
-	
-	public SQLResult(CommandType command, String table) {
-		this(command, table, Collections.emptyList());
-	}
-	
-	public SQLResult(CommandType command) {
-		this(command, "");
-	}
+		public SQLResultBuilder command(CommandType command) {
+			this.command = command;
+			return this;
+		}
 
-	public String getTable() {
-		return table;
+		public SQLResultBuilder database(String database) {
+			this.database = database;
+			return this;
+		}
+
+		public SQLResultBuilder table(String table) {
+			this.table = table;
+			return this;
+		}
+
+		public SQLResultBuilder columns(List<ColumnType> columns) {
+			this.columns = columns;
+			return this;
+		}
+
+		public SQLResultBuilder values(List<Expression> values) {
+			this.values = values;
+			return this;
+		}
+
+		public SQLResultBuilder where(Expression where) {
+			this.where = where;
+			return this;
+		}
+		
+		public SQLResult build() {
+			return new SQLResult(this);
+		}
+	}
+	
+	public static SQLResultBuilder builder() {
+		return new SQLResultBuilder();
+	}
+	
+	private SQLResult(SQLResultBuilder builder) {
+		this.command = builder.command;
+		this.database = builder.database;
+		this.table = builder.table;
+		this.columns = builder.columns;
+		this.values = builder.values;
+		this.where = builder.where;
 	}
 
 	public CommandType getCommand() {
 		return command;
 	}
+	
+	public String getDatabase() {
+		return database;
+	}
+	
+	public String getTable() {
+		return table;
+	}
 
 	public List<ColumnType> getColumns() {
 		return columns;
 	}
-
-	public List<Expression> getExpressions() {
-		return expressions;
+	
+	public List<Expression> getValues() {
+		return values;
 	}
 
-	@Override
-	public String toString() {
-		return "SQLResult [table=" + table + ", command=" + command + ", columns=" + columns + ", expression="
-				+ expressions + "]";
-	}
+	public Expression getWhere() {
+		return where;
+	}	
 }

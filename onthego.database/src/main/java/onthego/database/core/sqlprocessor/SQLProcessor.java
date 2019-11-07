@@ -73,7 +73,7 @@ public class SQLProcessor {
 		
 		TokenManager.createManagedToken("IDENTIFIER", "[a-z_][a-z_0-9]*");
 	}
-	
+	 
 	private String query;
 	
 	private SQLScanner scanner;
@@ -100,60 +100,100 @@ public class SQLProcessor {
 				if (!scanner.match(TokenManager.getToken("IDENTIFIER"))) {
 					throw new SQLProcessorException("A database name is required.");
 				}
-				return new SQLResult(SQLResult.CommandType.CREATE_DATABASE, scanner.getCurrentLexeme());
+				String database = scanner.getCurrentLexeme();
+				scanner.next();
+				
+//				return new SQLResult(SQLResult.CommandType.CREATE_DATABASE, scanner.getCurrentLexeme());
+				return SQLResult.builder()
+								.command(SQLResult.CommandType.CREATE_DATABASE)
+								.database(database).build();
+										
 			} else {
 				scanner.next(TokenManager.getToken("TABLE"));
 				if (!scanner.match(TokenManager.getToken("IDENTIFIER"))) {
 					throw new SQLProcessorException("A table name is required.");
 				}
-				
 				String table = scanner.getCurrentLexeme();
 				scanner.next();
+				
 				scanner.next(TokenManager.getToken("LP"));
 				List<ColumnType> columns = columnTypeList(); 
 				scanner.next(TokenManager.getToken("RP"));
 				
-				return new SQLResult(SQLResult.CommandType.CREATE_TABLE, table, columns);
+//				return new SQLResult(SQLResult.CommandType.CREATE_TABLE, table, columns);
+				return SQLResult.builder()
+								.command(SQLResult.CommandType.CREATE_TABLE)
+								.table(table)
+								.columns(columns).build();
 			}
 		} else if (scanner.match(TokenManager.getToken("DROP"))) {
+			scanner.next();
+			
 			scanner.next(TokenManager.getToken("TABLE"));
 			if (!scanner.match(TokenManager.getToken("IDENTIFIER"))) {
 				throw new SQLProcessorException("A table name is required.");
-			}
-			return new SQLResult(SQLResult.CommandType.DROP_TABLE, scanner.getCurrentLexeme());
+			} 
+			String table = scanner.getCurrentLexeme();
+			scanner.next();
+			
+//			return new SQLResult(SQLResult.CommandType.DROP_TABLE, table);
+			return SQLResult.builder()
+							.command(SQLResult.CommandType.DROP_TABLE)
+							.table(table).build();
 		} else if (scanner.match(TokenManager.getToken("USE"))) {
+			scanner.next();
+			
 			scanner.next(TokenManager.getToken("DATABASE"));
 			if (!scanner.match(TokenManager.getToken("IDENTIFIER"))) {
 				throw new SQLProcessorException("A database name is required.");
 			}
-			return new SQLResult(SQLResult.CommandType.USE_DATABASE, scanner.getCurrentLexeme());
+			String database = scanner.getCurrentLexeme();
+			scanner.next();
+			
+//			return new SQLResult(SQLResult.CommandType.USE_DATABASE, database);
+			return SQLResult.builder()
+							.command(SQLResult.CommandType.USE_DATABASE)
+							.database(database).build();
 		} else if (scanner.match(TokenManager.getToken("BEGIN"))) {
 			scanner.next();
 			if (scanner.match(TokenManager.getToken("TRANSACTION"))) {
 				scanner.next();
 			}
-			return new SQLResult(SQLResult.CommandType.BEGIN_TRANSACTION);
+//			return new SQLResult(SQLResult.CommandType.BEGIN_TRANSACTION);
+			return SQLResult.builder()
+							.command(SQLResult.CommandType.BEGIN_TRANSACTION).build();
 		} else if (scanner.match(TokenManager.getToken("COMMIT"))) {
 			scanner.next();
-			return new SQLResult(SQLResult.CommandType.COMMIT);
+//			return new SQLResult(SQLResult.CommandType.COMMIT);
+			return SQLResult.builder()
+							.command(SQLResult.CommandType.COMMIT).build();
 		} else if (scanner.match(TokenManager.getToken("ROLLBACK"))) {
 			scanner.next();
-			return new SQLResult(SQLResult.CommandType.ROLLBACK);
+//			return new SQLResult(SQLResult.CommandType.ROLLBACK);
+			return SQLResult.builder()
+							.command(SQLResult.CommandType.ROLLBACK).build();
 		} else if (scanner.match(TokenManager.getToken("SELECT"))) {
 			scanner.next();
+			
 			List<ColumnType> columns = columnList();
 			
 			scanner.next(TokenManager.getToken("FROM"));
 			String table = scanner.getCurrentLexeme();
 			scanner.next();
 			
-			List<Expression> expressions = new ArrayList<>();
+			Expression where = Expression.NULL_EXPRESSION;
 			if (scanner.match(TokenManager.getToken("WHERE"))) {
 				scanner.next();
-				expressions.add(new SQLParser(scanner).parse());
+				where = new SQLParser(scanner).parse();
 			}
 			
-			return new SQLResult(SQLResult.CommandType.SELECT, table, columns, Collections.emptyList(), expressions);
+//			return new SQLResult(SQLResult.CommandType.SELECT, table, columns, Collections.emptyList(), expressions);
+			return SQLResult.builder()
+							.command(SQLResult.CommandType.SELECT)
+							.table(table)
+							.columns(columns)
+							.where(where)
+							.build();
 		} else if (scanner.match(TokenManager.getToken("INSERT"))) {
 			scanner.next();
 			
@@ -170,10 +210,16 @@ public class SQLProcessor {
 			
 			scanner.next(TokenManager.getToken("VALUES"));
 			scanner.next(TokenManager.getToken("LP"));
-			List<Expression> values = expressionList();
+			List<Expression> values = valueList();
 			scanner.next(TokenManager.getToken("RP"));
 			
-			return new SQLResult(SQLResult.CommandType.INSERT, table, columns, values);
+//			return new SQLResult(SQLResult.CommandType.INSERT, table, columns, values);
+			return SQLResult.builder()
+							.command(SQLResult.CommandType.INSERT)
+							.table(table)
+							.columns(columns)
+							.values(values)
+							.build();
 		} else if (scanner.match(TokenManager.getToken("UPDATE"))) {
 			scanner.next();
 			
@@ -193,16 +239,23 @@ public class SQLProcessor {
 			
 			scanner.next(TokenManager.getToken("EQUAL"));
 			
-			List<Expression> value = expressionList();
-			scanner.next();
+			List<Expression> values = valueList();
 			
-			List<Expression> expressions = new ArrayList<>();
+			Expression where = Expression.NULL_EXPRESSION;
 			if (scanner.match(TokenManager.getToken("WHERE"))) {
 				scanner.next();
-				expressions.add(new SQLParser(scanner).parse());
+				
+				where = new SQLParser(scanner).parse();
 			}
 			
-			return new SQLResult(SQLResult.CommandType.UPDATE, table, Collections.singletonList(column), value, expressions);
+//			return new SQLResult(SQLResult.CommandType.UPDATE, table, Collections.singletonList(column), value, expressions);
+			return SQLResult.builder()
+							.command(SQLResult.CommandType.UPDATE)
+							.table(table)
+							.columns(Collections.singletonList(column))
+							.values(values)
+							.where(where)
+							.build();
 		} else if (scanner.match(TokenManager.getToken("DELETE"))) {
 			scanner.next();
 			
@@ -213,13 +266,19 @@ public class SQLProcessor {
 			String table = scanner.getCurrentLexeme();
 			scanner.next();			
 			
-			List<Expression> expressions = new ArrayList<>();
+			Expression where = Expression.NULL_EXPRESSION;
 			if (scanner.match(TokenManager.getToken("WHERE"))) {
 				scanner.next();
-				expressions.add(new SQLParser(scanner).parse());
+				
+				where = new SQLParser(scanner).parse();
 			}
 			
-			return new SQLResult(SQLResult.CommandType.DELETE, table, Collections.emptyList(), Collections.emptyList(), expressions);
+//			return new SQLResult(SQLResult.CommandType.DELETE, table, Collections.emptyList(), Collections.emptyList(), expressions);
+			return SQLResult.builder()
+							.command(SQLResult.CommandType.DELETE)
+							.table(table)
+							.where(where)
+							.build();
 		} 
 		
 		throw new SQLProcessorException("An unrecognizable query => " + this.query);
@@ -229,7 +288,7 @@ public class SQLProcessor {
 		return new SQLParser(scanner).parse();
 	}
 
-	private List<Expression> expressionList() throws SQLProcessorException {
+	private List<Expression> valueList() throws SQLProcessorException {
 		List<Expression> expressions = new ArrayList<>();
 		
 		expressions.add(parse());
@@ -243,6 +302,7 @@ public class SQLProcessor {
 
 	private List<ColumnType> columnList() throws SQLScannerException {
 		if (scanner.match(TokenManager.getToken("STAR"))) {
+			scanner.next();
 			return Collections.emptyList();
 		}
 		
@@ -277,6 +337,8 @@ public class SQLProcessor {
 					throw new SQLProcessorException("A number is required.");
 				}
 				columnType.setType(new CharType(Integer.parseInt(scanner.getCurrentLexeme())));
+				scanner.next();
+				
 				scanner.next(TokenManager.getToken("RP"));
 			} else if (scanner.match(TokenManager.getToken("VARCHAR"))) {
 				scanner.next();
@@ -286,6 +348,8 @@ public class SQLProcessor {
 					throw new SQLProcessorException("A number is required.");
 				}
 				columnType.setType(new VarcharType(Integer.parseInt(scanner.getCurrentLexeme())));
+				scanner.next();
+				
 				scanner.next(TokenManager.getToken("RP"));
 			} else if (scanner.match(TokenManager.getToken("INTEGER"))) {
 				scanner.next();
@@ -295,6 +359,8 @@ public class SQLProcessor {
 					throw new SQLProcessorException("A number is required.");
 				}
 				columnType.setType(new IntegerType(Integer.parseInt(scanner.getCurrentLexeme())));
+				scanner.next();
+				
 				scanner.next(TokenManager.getToken("RP"));
 			} else if (scanner.match(TokenManager.getToken("NUMERIC"))) {
 				scanner.next();

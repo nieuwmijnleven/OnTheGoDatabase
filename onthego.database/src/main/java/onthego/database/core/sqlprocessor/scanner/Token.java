@@ -30,9 +30,9 @@ public abstract class Token {
 		return "Token [type='" + type + "', pattern='" + patternStr + "', lexeme='" + lexeme() + "']";
 	}
 
-	public static class NullToken extends Token {
+	public static final class DefaultToken extends Token {
 		
-		public NullToken() {
+		public DefaultToken() {
 			super(Token.Type.NULL, null);
 		}
 
@@ -47,5 +47,7 @@ public abstract class Token {
 		}
 	}
 	
-	public static final Token NULL_TOKEN = new NullToken();
+	public static final Token NULL_TOKEN = new DefaultToken();
+	
+	public static final Token BEGIN_TOKEN = new DefaultToken();
 }
