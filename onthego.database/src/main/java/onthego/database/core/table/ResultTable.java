@@ -102,7 +102,7 @@ public final class ResultTable implements Table {
 		private Iterator<byte[]> iterator = records.iterator();
 		
 		private byte[] record;
-
+		
 		@Override
 		public String getTableName() {
 			return ResultTable.this.getTableName();
@@ -143,7 +143,7 @@ public final class ResultTable implements Table {
 		@Override
 		public Iterator<String> getRecord() {
 			return new StandardRecordIterator(record, getColumnCount());
-		}
+		} 
 
 		@Override
 		public String update(String columnName, String newValue) {

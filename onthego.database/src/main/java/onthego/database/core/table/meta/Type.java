@@ -94,23 +94,33 @@ public abstract class Type {
 	}
 	
 	@Override
-	public boolean equals(Object obj) {
-		if (!(obj instanceof Type)) {
-			return false;
-		}
-		
-		Type rhs = (Type)obj;
-		return this.typeConstant.equals(rhs.typeConstant) 
-			&& this.length == rhs.length
-			&& this.decimalLength == rhs.decimalLength
-			&& this.pattern.pattern().equals(rhs.pattern.pattern());
-	}
-	
-	@Override
 	public int hashCode() {
-		return Objects.hash(typeConstant, length, decimalLength, pattern.pattern());
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + decimalLength;
+		result = prime * result + length;
+		result = prime * result + ((typeConstant == null) ? 0 : typeConstant.hashCode());
+		return result;
 	}
-	
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Type other = (Type) obj;
+		if (decimalLength != other.decimalLength)
+			return false;
+		if (length != other.length)
+			return false;
+		if (typeConstant != other.typeConstant)
+			return false;
+		return true;
+	}
+
 	@Override
 	public String toString() {
 		return typeConstant.getName();

@@ -44,9 +44,7 @@ public class RelationalExpression implements Expression {
 			} else {
 				throw new ExpressionEvaluationException("Number values cannot use this relational operator.");
 			}
-		}
-		
-		if (lValue.getType() == Value.Type.STRING && rValue.getType() == Value.Type.STRING) {
+		} else if (lValue.getType() == Value.Type.STRING && rValue.getType() == Value.Type.STRING) {
 			String l = ((StringValue)lValue).getValue();
 			String r = ((StringValue)rValue).getValue();
 			
@@ -57,9 +55,7 @@ public class RelationalExpression implements Expression {
 			} else {
 				throw new ExpressionEvaluationException("String values can only use '=' or '<>' relational operators.");
 			}
-		}
-		
-		if (lValue.getType() == Value.Type.NULL && rValue.getType() == Value.Type.NULL) {
+		} else if (lValue.getType() == Value.Type.NULL && rValue.getType() == Value.Type.NULL) {
 			if (op == Expression.EQ) {
 				return new BooleanValue(true);
 			} else if (op == Expression.NE) {
@@ -67,9 +63,7 @@ public class RelationalExpression implements Expression {
 			} else {
 				throw new ExpressionEvaluationException("Null values can only use '=' or '<>' relational operators.");
 			}
-		}
-		
-		if (lValue.getType() == Value.Type.BOOLEAN && rValue.getType() == Value.Type.BOOLEAN) {
+		} else if (lValue.getType() == Value.Type.BOOLEAN && rValue.getType() == Value.Type.BOOLEAN) {
 			boolean l = ((BooleanValue)lValue).getValue();
 			boolean r = ((BooleanValue)rValue).getValue();
 			
@@ -82,6 +76,6 @@ public class RelationalExpression implements Expression {
 			}
 		}
 		
-		throw new ExpressionEvaluationException("The type of operands is required to be String or Null type.");
+		throw new ExpressionEvaluationException("The type of operands is required to be String, Null, Boolean type.");
 	}
 }

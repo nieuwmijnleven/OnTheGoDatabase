@@ -56,14 +56,18 @@ public class SQLProcessorTest {
 		ColumnType column = columns.get(0);
 		assertEquals("serial_no", column.getName());
 		assertEquals(TypeConstants.INTEGER, column.getType().getTypeConstant());
+		assertEquals(10, column.getType().getLength());
 		
 		column = columns.get(1);
 		assertEquals("name", column.getName());
 		assertEquals(TypeConstants.CHAR, column.getType().getTypeConstant());
+		assertEquals(30, column.getType().getLength());
 		
 		column = columns.get(2);
 		assertEquals("price", column.getName());
 		assertEquals(TypeConstants.NUMERIC, column.getType().getTypeConstant());
+		assertEquals(10, column.getType().getLength());
+		assertEquals(3, column.getType().getDecimalLength());
 	}
 	
 	@Test

@@ -99,8 +99,9 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 			int indexType = map.get(currentNode).first;
 			int currentIndex = map.get(currentNode).second;
 			
-			if (currentNode.isLeaf && currentIndex < currentNode.n) {
-				if (currentIndex == currentNode.n - 1) {
+			
+			if (currentNode.isLeaf) {
+				if (currentIndex >= currentNode.n - 1) {
 					stack.pop();
 					map.remove(currentNode);
 				} else {

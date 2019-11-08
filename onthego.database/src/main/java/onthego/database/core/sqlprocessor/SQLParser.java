@@ -11,7 +11,6 @@ import onthego.database.core.sqlprocessor.expression.LikeExpression;
 import onthego.database.core.sqlprocessor.expression.LogicalExpression;
 import onthego.database.core.sqlprocessor.expression.NOTExpression;
 import onthego.database.core.sqlprocessor.expression.RelationalExpression;
-import onthego.database.core.sqlprocessor.scanner.Token;
 import onthego.database.core.sqlprocessor.scanner.TokenManager;
 import onthego.database.core.sqlprocessor.value.BooleanValue;
 import onthego.database.core.sqlprocessor.value.IdValue;
@@ -37,7 +36,7 @@ public class SQLParser {
 			return doParse();
 		} catch (SQLScannerException e) {
 			throw new SQLParserException(e);
-		}
+		} 
 	}
 	
 	private Expression doParse() throws SQLScannerException {
@@ -154,14 +153,16 @@ public class SQLParser {
 			value = new BooleanValue(scanner.getCurrentLexeme());
 			scanner.next();
 		} else {
-			scanner.next(TokenManager.getToken("IDENTIFIER"));
-			String columnName = scanner.getCurrentLexeme();
+//			scanner.next(TokenManager.getToken("IDENTIFIER"));
 			String tableName = null;
+			String columnName = scanner.getCurrentLexeme();
+			scanner.next(TokenManager.getToken("IDENTIFIER"));
 			
 			if (scanner.match(TokenManager.getToken("DOT"))) {
+				scanner.next();
 				tableName = columnName;
-				scanner.next(TokenManager.getToken("IDENTIFIER"));
 				columnName = scanner.getCurrentLexeme();
+				scanner.next(TokenManager.getToken("IDENTIFIER"));
 			}
 			
 			value = new IdValue(tableName, columnName);

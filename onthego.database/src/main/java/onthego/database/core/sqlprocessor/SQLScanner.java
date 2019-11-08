@@ -44,7 +44,7 @@ public class SQLScanner {
 			for (Iterator<Token> it = TokenManager.iterator(); it.hasNext();) {
 				Token token = it.next();
 				if (token.match(currentLine, currentLinePos)) {
-					System.out.println("token = " + token);
+//					System.out.println("token = " + token);
 					currentToken = token;
 					currentLinePos += token.lexeme().length();
 					break;

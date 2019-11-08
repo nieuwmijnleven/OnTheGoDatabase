@@ -90,7 +90,7 @@ public class StandardTable implements Table {
 	@Override
 	public void commit(boolean all) {
 		if (transactionStack.isEmpty()) {
-			throw new IllegalStateException("There is no BEGIN for ROLLBACK");
+			throw new IllegalStateException("There is no BEGIN for COMMIT");
 		}
 		
 		if (all) {
@@ -107,12 +107,18 @@ public class StandardTable implements Table {
 	private long insertRecord(byte[] payload) {
 		long recordPos = tsManager.allocate(payload.length);
 		tsManager.writeBlock(recordPos, payload);
+		tsManager.increaseRecordCount();
 		clusteredIndex.insert(recordPos, recordPos);
 		return recordPos;
+	}
+	
+	private void updateRecord(long recordPos, byte[] newRecord) {
+		tsManager.writeBlock(recordPos, newRecord);
 	}
 
 	private void deleteRecord(long recordPos) {
 		tsManager.free(recordPos);
+		tsManager.decreaseRecordCount();
 		clusteredIndex.delete(recordPos);
 	}
 	
@@ -144,10 +150,13 @@ public class StandardTable implements Table {
 			
 			byteBuffer.mark();
 			byteBuffer.position(offset);
-			StandardTableUtil.writeUTF(byteBuffer, values.get(column));
-			byteBuffer.reset();
 			
-			offset += Short.BYTES + StandardTableUtil.getUTFSize(values.get(column));
+			String value = (values.get(column) != null) ? values.get(column) : "";
+			System.out.println("value = " + value);
+			StandardTableUtil.writeUTF(byteBuffer, value);
+			
+			byteBuffer.reset();
+			offset += Short.BYTES + StandardTableUtil.getUTFSize(value);
 		}
 		
 		long recordPos = insertRecord(byteBuffer.array());
@@ -318,6 +327,8 @@ public class StandardTable implements Table {
 				deleteRecord(this.recordPos);
 				this.recordPos = insertRecord(newRecord);
 				this.record = newRecord;
+			} else {
+				updateRecord(this.recordPos, newRecord);
 			}
 			
 			addToTransactionStack(new UndoUpdate(recordPos, record, columnIndex, oldValue));

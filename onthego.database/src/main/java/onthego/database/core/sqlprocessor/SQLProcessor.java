@@ -181,7 +181,7 @@ public class SQLProcessor {
 			String table = scanner.getCurrentLexeme();
 			scanner.next();
 			
-			Expression where = Expression.NULL_EXPRESSION;
+			Expression where = Expression.TRUE_EXPRESSION;
 			if (scanner.match(TokenManager.getToken("WHERE"))) {
 				scanner.next();
 				where = new SQLParser(scanner).parse();
@@ -241,7 +241,7 @@ public class SQLProcessor {
 			
 			List<Expression> values = valueList();
 			
-			Expression where = Expression.NULL_EXPRESSION;
+			Expression where = Expression.TRUE_EXPRESSION;
 			if (scanner.match(TokenManager.getToken("WHERE"))) {
 				scanner.next();
 				
@@ -266,7 +266,7 @@ public class SQLProcessor {
 			String table = scanner.getCurrentLexeme();
 			scanner.next();			
 			
-			Expression where = Expression.NULL_EXPRESSION;
+			Expression where = Expression.TRUE_EXPRESSION;
 			if (scanner.match(TokenManager.getToken("WHERE"))) {
 				scanner.next();
 				
@@ -279,7 +279,7 @@ public class SQLProcessor {
 							.table(table)
 							.where(where)
 							.build();
-		} 
+		}  
 		
 		throw new SQLProcessorException("An unrecognizable query => " + this.query);
 	}

@@ -27,12 +27,21 @@ public interface Expression {
 	
 	Value evaluate(Cursor[] cursor) throws ExpressionEvaluationException;
 	
-	public static class NullExpression implements Expression {
+	public static class FalseExpression implements Expression {
 		@Override
 		public Value evaluate(Cursor[] cursor) throws ExpressionEvaluationException {
 			return new BooleanValue(false);
 		}
 	}
 	
-	public static final Expression NULL_EXPRESSION = new NullExpression();
+	public static class TrueExpression implements Expression {
+		@Override
+		public Value evaluate(Cursor[] cursor) throws ExpressionEvaluationException {
+			return new BooleanValue(true);
+		}
+	}
+	
+	public static final Expression NULL_EXPRESSION = new FalseExpression();
+	public static final Expression TRUE_EXPRESSION = new TrueExpression();
+	public static final Expression FALSE_EXPRESSION = new FalseExpression();
 }

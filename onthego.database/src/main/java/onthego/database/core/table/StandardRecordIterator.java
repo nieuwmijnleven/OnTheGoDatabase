@@ -11,6 +11,10 @@ public class StandardRecordIterator implements Iterator<String> {
 	private int columnIndex;
 	
 	public StandardRecordIterator(byte[] record, int columnCount) {
+		if (record == null) {
+			throw new IllegalArgumentException();
+		}
+		
 		this.record = record;
 		this.columnCount = columnCount;
 		this.columnIndex = 0;

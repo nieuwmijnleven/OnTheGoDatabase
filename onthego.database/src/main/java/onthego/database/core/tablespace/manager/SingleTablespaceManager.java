@@ -53,7 +53,7 @@ public class SingleTablespaceManager implements TablespaceManager {
 	
 	private SingleTablespaceManager(String tsPath, TablespaceHeader tsHeader) throws IOException {
 		this.io = new RandomAccessFile(tsPath, "rws");
-		this.tsHeader = tsHeader;
+		this.tsHeader = tsHeader; 
 		initialize();
 		
 		if (tsHeader.getTableMetaInfo() != null) {

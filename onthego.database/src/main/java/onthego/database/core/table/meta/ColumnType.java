@@ -56,17 +56,35 @@ public class ColumnType {
 	public void setNullable(boolean isNullable) {
 		this.isNullable = isNullable;
 	}
-	
+
 	@Override
-	public boolean equals(Object obj) {		
-		if (!(obj instanceof ColumnType)) {
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
 			return false;
-		}
-		
-		ColumnType rhs = (ColumnType)obj;
-		return this.name.equals(rhs.name)
-			&& this.type.equals(rhs.type)
-			&& this.isKey == rhs.isKey
-			&& this.isNullable == rhs.isNullable;
+		if (getClass() != obj.getClass())
+			return false;
+		ColumnType other = (ColumnType) obj;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		if (type == null) {
+			if (other.type != null)
+				return false;
+		} else if (!type.equals(other.type))
+			return false;
+		return true;
 	}
 }

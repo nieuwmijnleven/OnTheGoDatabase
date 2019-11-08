@@ -52,7 +52,7 @@ public class StandardTableUtil {
             }
         }
         
-        return utflen;
+        return utflen; 
 	}
 	
 	public static String readUTF(ByteBuffer byteBuffer) {
