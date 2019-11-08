@@ -97,38 +97,34 @@ public class SingleTablespaceManagerTest {
 			io.read(writtenMagic);
 			
 			assertArrayEquals(MAGIC, writtenMagic);
-			assertEquals(io.readInt(), 4);
-			assertEquals(io.readInt(), 10);
-			assertEquals(io.readLong(), 100);
-			assertEquals(io.readLong(), 0);
-			assertEquals(io.readLong(), 200);
-			assertEquals(io.readLong(), 300);
-			assertEquals(io.readLong(), 400);
+			assertEquals(4, io.readInt());
+			assertEquals(10, io.readInt());
+			assertEquals(100, io.readLong());
+			assertEquals(0, io.readLong());
+			assertEquals(200, io.readLong());
+			assertEquals(300, io.readLong());
+			assertEquals(400, io.readInt());
 		} catch(IOException ioe) {
 			fail("io error occurred : " + ioe.getMessage());
 		}
 	}
 
 	@Test
-	public void testLoad() {
-		TablespaceManager tsManager = null;
-		try {
-			tsManager = SingleTablespaceManager.load("./dummytable.db");
-			tsManager.close();
-		} catch(Exception e) {
-			fail("could not load a Tablespace");
-		} 
+	public void testLoad() throws IOException {
+		generateTableMetaInfo();
+		
+		TablespaceManager tsManager = SingleTablespaceManager.load("./dummytable.db");
+		tsManager.close();
 		
 		TablespaceHeader tsHeader = tsManager.getHeader();
-		
-		assertArrayEquals(tsHeader.getMagic(), MAGIC);
-		assertEquals(tsHeader.getChunkSize(), 4);
-		assertEquals(tsHeader.getCrc(), 10);
-		assertEquals(tsHeader.getFirstBlockPos(), 100);
-		assertEquals(tsHeader.getFirstFreeBlockPos(), 0);
-		assertEquals(tsHeader.getTableRootPos(), 200);
-		assertEquals(tsHeader.getTableMetaInfoPos(), 300);
-		assertEquals(tsHeader.getRecordCount(), 400);
+		assertArrayEquals(MAGIC, tsHeader.getMagic());
+		assertEquals(4, tsHeader.getChunkSize());
+		assertEquals(10, tsHeader.getCrc());
+		assertEquals(100, tsHeader.getFirstBlockPos());
+		assertEquals(0, tsHeader.getFirstFreeBlockPos());
+		assertEquals(200, tsHeader.getTableRootPos());
+		assertEquals(80, tsHeader.getTableMetaInfoPos());
+		assertEquals(400, tsHeader.getRecordCount());
 	}
 	
 	@Test
@@ -172,26 +168,26 @@ public class SingleTablespaceManagerTest {
 	
 	@Test
 	public void testGetRootPos() {
-		assertEquals(tsManager.getRootPos(), 200);
+		assertEquals(200, tsManager.getRootPos());
 	}
 	
 	@Test
 	public void testIncreaseRecordCount() {
 		IntStream.range(0, 200).forEach(i -> tsManager.increaseRecordCount());
-		assertEquals(tsManager.getRecordCount(), 600);
+		assertEquals(600, tsManager.getRecordCount());
 	}
 	
 	@Test
 	public void testDecreaseRecordCount() {
 		IntStream.range(0, 100).forEach(i -> tsManager.decreaseRecordCount());
-		assertEquals(tsManager.getRecordCount(), 300);
+		assertEquals(300, tsManager.getRecordCount());
 	}
 
 	@Test
 	public void testGetRecordCount() {
 		IntStream.range(0, 200).forEach(i -> tsManager.increaseRecordCount());
 		IntStream.range(0, 100).forEach(i -> tsManager.decreaseRecordCount());
-		assertEquals(tsManager.getRecordCount(), 500);
+		assertEquals(500, tsManager.getRecordCount());
 	}
 
 	@Test
@@ -226,12 +222,12 @@ public class SingleTablespaceManagerTest {
 
 			try (ByteArrayInputStream bin = new ByteArrayInputStream(tsManager.readBlock(blockPos));
 				 DataInputStream din = new DataInputStream(bin)) {
-				assertEquals(din.readInt(), i);
-				assertEquals(din.readInt(), i + 1);
-				assertEquals(din.readInt(), i + 2);
-				assertEquals(din.readLong(), i + 3);
-				assertEquals(din.readLong(), i + 4);
-				assertEquals(din.readLong(), i + 5);
+				assertEquals(i, din.readInt());
+				assertEquals(i + 1, din.readInt());
+				assertEquals(i + 2, din.readInt());
+				assertEquals(i + 3, din.readLong());
+				assertEquals(i + 4, din.readLong());
+				assertEquals(i + 5, din.readLong());
 			} catch(IOException ioe) {
 				throw new TablespaceManagerException(ioe);
 			}
@@ -268,21 +264,22 @@ public class SingleTablespaceManagerTest {
 			io.read(writtenMagic);
 			
 			assertArrayEquals(MAGIC, writtenMagic);
-			assertEquals(io.readInt(), 4);
-			assertEquals(io.readInt(), 10);
-			assertEquals(io.readLong(), 100);
-			assertEquals(io.readLong(), 0);
-			assertEquals(io.readLong(), 1024);
-			assertEquals(io.readLong(), 300);
-			assertEquals(io.readLong(), 500);
+			assertEquals(4, io.readInt());
+			assertEquals(10, io.readInt());
+			assertEquals(100, io.readLong());
+			assertEquals(0, io.readLong());
+			assertEquals(1024, io.readLong());
+			assertEquals(300, io.readLong());
+			assertEquals(500, io.readInt());
 		} catch(IOException ioe) {
 			fail("io error occurred : " + ioe.getMessage());
 		}
 	}
-
+	
 	@Test
 	public void testLoadHeader() {
 		try (RandomAccessFile io = new RandomAccessFile("./dummytable.db", "rws")) {
+			io.seek(0);
 			io.write(MAGIC);
 			io.writeInt(4);
 			io.writeInt(10);
@@ -290,13 +287,13 @@ public class SingleTablespaceManagerTest {
 			io.writeLong(0);
 			io.writeLong(1024);
 			io.writeLong(300);
-			io.writeLong(500);
+			io.writeInt(500);
 		} catch(IOException ioe) {
 			fail("io error occurred : " + ioe.getMessage());
 		}
 		
 		tsManager.loadHeader();
-		assertEquals(tsManager.getRootPos(), 1024);
-		assertEquals(tsManager.getRecordCount(), 500);
+		assertEquals(1024, tsManager.getRootPos());
+		assertEquals(500, tsManager.getRecordCount());
 	}
 }

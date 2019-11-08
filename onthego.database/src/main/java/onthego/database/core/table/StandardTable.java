@@ -78,7 +78,7 @@ public class StandardTable implements Table {
 		if (transactionStack.isEmpty()) {
 			throw new IllegalStateException("There is no BEGIN for ROLLBACK");
 		}
-			
+		
 		do {
 			List<Undo> transactionList = transactionStack.pop();
 			for (Undo undo : transactionList) {
@@ -325,8 +325,11 @@ public class StandardTable implements Table {
 			byte[] newRecord = StandardTableUtil.writeColumnData(record, columnIndex, newValue);
 			if (newRecord.length != record.length) {
 				deleteRecord(this.recordPos);
+				addToTransactionStack(new UndoDelete(record));
+				
 				this.recordPos = insertRecord(newRecord);
 				this.record = newRecord;
+				addToTransactionStack(new UndoInsert(recordPos));
 			} else {
 				updateRecord(this.recordPos, newRecord);
 			}

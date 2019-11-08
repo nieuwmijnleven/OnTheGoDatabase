@@ -387,6 +387,8 @@ public class DatabaseTest {
 		
 		assertFalse(cursor.next());
 		
+		database.begin();
+		
 		query = "insert into product(serial_no, name, price) "
 			  + "values(100, 'smartphone', 200.1)";
 		database.execute(query);
@@ -473,5 +475,13 @@ public class DatabaseTest {
 		assertEquals("101", it.next());
 		assertEquals("smartphone", it.next());
 		assertEquals("200.1", it.next());
+		
+		database.rollback();
+		
+		query = "select * from product";
+		resultTable = database.execute(query);
+		cursor = resultTable.getCursor();
+		
+		assertFalse(cursor.next());
 	}
 }

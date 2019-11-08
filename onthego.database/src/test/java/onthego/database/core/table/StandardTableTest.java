@@ -4,6 +4,7 @@ import static onthego.database.core.table.StandardTableUtil.readUTF;
 import static onthego.database.core.table.StandardTableUtil.readUnsignedShort;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -153,5 +154,66 @@ public class StandardTableTest {
 		});
 		
 		assertFalse(table.getCursor().next());
+	}
+	
+	@Test
+	public void testRollback() throws IOException {
+		Cursor cursor = table.getCursor();
+		assertTrue(cursor.next());
+		
+		table.begin();
+		
+		Iterator<String> iterator = cursor.getRecord();
+		assertEquals("100", iterator.next());
+		assertEquals("smartphone", iterator.next());
+		assertEquals("123.4", iterator.next());
+		assertEquals("true", iterator.next());
+		
+		table.update(new Filtration() {
+			@Override
+			public boolean filter(Cursor[] cursor) {
+				return cursor[0].getColumn("serial_no").equals("100")
+					&& cursor[0].getColumn("price").equals("123.4")
+					&& cursor[0].getColumn("on_sale").equals("true");
+			}
+
+			@Override
+			public void update(Cursor cursor) {
+				cursor.update("name", "the state of art smartphone");
+			}
+		});
+		
+		cursor = table.getCursor();
+		assertTrue(cursor.next());
+		
+		iterator = cursor.getRecord();
+		assertEquals("100", iterator.next());
+		assertEquals("the state of art smartphone", iterator.next());
+		assertEquals("123.4", iterator.next());
+		assertEquals("true", iterator.next());
+		
+		table.delete(new Filtration.DefaultFilter() {
+			@Override
+			public boolean filter(Cursor[] cursor) {
+				return cursor[0].getColumn("serial_no").equals("100")
+					&& cursor[0].getColumn("name").equals("the state of art smartphone")
+					&& cursor[0].getColumn("price").equals("123.4")
+					&& cursor[0].getColumn("on_sale").equals("true");
+			}
+		});
+		
+		cursor = table.getCursor();
+		assertFalse(cursor.next());
+		
+		table.rollback(true);
+		
+		cursor = table.getCursor();
+		assertTrue(cursor.next());
+		
+		iterator = cursor.getRecord();
+		assertEquals("100", iterator.next());
+		assertEquals("smartphone", iterator.next());
+		assertEquals("123.4", iterator.next());
+		assertEquals("true", iterator.next());
 	}
 }

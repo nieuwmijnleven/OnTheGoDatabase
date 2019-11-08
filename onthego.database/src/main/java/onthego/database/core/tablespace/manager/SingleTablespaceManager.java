@@ -102,7 +102,7 @@ public class SingleTablespaceManager implements TablespaceManager {
 			io.writeLong(tsHeader.getFirstFreeBlockPos());
 			io.writeLong(tsHeader.getTableRootPos());
 			io.writeLong(tsHeader.getTableMetaInfoPos());
-			io.writeLong(tsHeader.getRecordCount());
+			io.writeInt(tsHeader.getRecordCount());
 		} catch(Exception ioe) {
 			throw new TablespaceManagerException(ioe);
 		}
