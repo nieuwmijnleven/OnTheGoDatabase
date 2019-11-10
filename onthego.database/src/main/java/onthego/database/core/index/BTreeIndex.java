@@ -162,6 +162,8 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 	private void initialize() {
 		if (tsManager.getRootPos() == 0) {
 			this.root = allocateNode(true);
+			tsManager.saveRootPos(root.pos);
+			saveNode(root);
 		} else  {
 			this.root = loadNode(tsManager.getRootPos());
 		}
@@ -214,6 +216,9 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 			freeNode(node);
 			this.estimatedNodeSize = payload.length;
 			node.pos = tsManager.allocate(payload.length);
+			if (node == root) {
+				tsManager.saveRootPos(node.pos);
+			}
 			tsManager.writeBlock(node.pos, payload);
 		} catch (MarginalPayloadSpaceException e) {
 			throw new BTreeIndexException("it's impossible to save a payload into a tablespace");
