@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import onthego.database.core.sqlprocessor.SQLScanner;
@@ -14,8 +15,15 @@ public class SQLScannerTest {
 	private static String statement = "select select_column1, select_column2 "
 									 + "from table "
 									 + "where where_cond = 100";
+	
+	@BeforeClass
+	public static void setUpBeforeClass() throws Exception {
+		Class.forName("onthego.database.core.sqlprocessor.SQLProcessor");
+	}
+	
 	@Before
 	public void setUp() throws Exception {
+		TokenManager.saveManagedTokens();
 		TokenManager.clear();
 		
 		TokenManager.createManagedToken("COMMA", "','");
@@ -33,10 +41,10 @@ public class SQLScannerTest {
 		assertEquals(Token.Type.REGEX, TokenManager.getToken("IDENTIFIER").getType());
 	}
 	
-//	@After
-//	public void tearDown() throws Exception {
-//		TokenManager.clear();
-//	}
+	@After
+	public void tearDown() throws Exception {
+		TokenManager.restoreManagedTokens();
+	}
 
 	@Test
 	public void testNext() throws SQLScannerException {

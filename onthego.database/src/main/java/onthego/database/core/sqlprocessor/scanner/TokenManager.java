@@ -15,6 +15,10 @@ public class TokenManager {
 	
 	private static final Pattern regexMetaCharacters = Pattern.compile("[\\\\\\[\\]{}$\\^*+?|()]");
 
+	private static List<Token> savedTokens = new ArrayList<>();
+	
+	private static Map<String,Token> savedTokenMap = new HashMap<>();
+	
 	private TokenManager() {}
 	
 	public static Token createManagedToken(String tokenName, String patternString) {
@@ -68,6 +72,17 @@ public class TokenManager {
 	
 	public static Iterator<Token> iterator() {
 		return tokens.iterator();
+	}
+	
+	public static void saveManagedTokens() {
+		savedTokens = new ArrayList<>(tokens);
+		savedTokenMap = new HashMap<>(tokenMap);
+	}
+	
+	public static void restoreManagedTokens() {
+		clear();
+		tokens.addAll(savedTokens);
+		tokenMap.putAll(savedTokenMap);
 	}
 	
 	public static void clear() {

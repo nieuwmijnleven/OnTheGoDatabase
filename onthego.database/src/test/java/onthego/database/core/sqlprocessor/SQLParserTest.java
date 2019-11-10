@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import onthego.database.core.sqlprocessor.expression.Expression;
@@ -14,9 +15,15 @@ import onthego.database.core.sqlprocessor.value.BooleanValue;
 import onthego.database.core.sqlprocessor.value.Value;
 
 public class SQLParserTest {
+	
+	@BeforeClass
+	public static void setUpBeforeClass() throws Exception {
+		Class.forName("onthego.database.core.sqlprocessor.SQLProcessor");
+	}
 
 	@Before
 	public void setUp() throws Exception {
+		TokenManager.saveManagedTokens();
 		TokenManager.clear();
 		
 		TokenManager.createManagedToken("COMMA", "','");
@@ -60,7 +67,7 @@ public class SQLParserTest {
 
 	@After
 	public void tearDown() throws Exception {
-		TokenManager.clear();
+		TokenManager.restoreManagedTokens();
 	}
 	
 	private void testDoParse(String whereCond, boolean result) throws Exception {
