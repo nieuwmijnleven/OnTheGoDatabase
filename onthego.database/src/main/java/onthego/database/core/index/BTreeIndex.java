@@ -121,7 +121,8 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 					}
 					
 					//a newly found internal node
-					currentNode = currentNode.child[currentIndex];
+					//currentNode = currentNode.child[currentIndex];
+					currentNode = loadChild(currentNode, currentIndex);
 					currentIndex = 0;
 					stack.push(currentNode);
 					//map.put(currentNode, new Pair<>(INDEX_TYPE_KEY, 0));
