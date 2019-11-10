@@ -69,6 +69,11 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
+	public void close() {
+		tsManager.close();
+	}
+	
+	@Override
 	public void begin() {
 		transactionStack.push(new LinkedList<Undo>());
 	}
@@ -125,7 +130,7 @@ public class StandardTable implements Table {
 	@Override
 	public Table select(Filtration filtration) {
 		List<byte[]> filteredRecords = new ArrayList<>();
-		Cursor cursor = getCursor();
+	 	Cursor cursor = getCursor();
 		while (cursor.next()) {
 			if (filtration.filter(new Cursor[]{cursor})) {
 				filteredRecords.add(cursor.getRawRecord());
@@ -152,7 +157,7 @@ public class StandardTable implements Table {
 			byteBuffer.position(offset);
 			
 			String value = (values.get(column) != null) ? values.get(column) : "";
-			System.out.println("value = " + value);
+			//System.out.println("value = " + value);
 			StandardTableUtil.writeUTF(byteBuffer, value);
 			
 			byteBuffer.reset();

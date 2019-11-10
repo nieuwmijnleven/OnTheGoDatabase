@@ -31,4 +31,6 @@ public interface Table {
 	List<ColumnType> getColumnList();
 
 	int getColumnCount();
+
+	void close();
 }

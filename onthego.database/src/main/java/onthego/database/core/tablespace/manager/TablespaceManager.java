@@ -8,18 +8,6 @@ import onthego.database.core.tablespace.meta.TablespaceHeader;
 
 public interface TablespaceManager {
 	
-	/*enum ManagerType {
-		SingleTablespaceManager
-	}
-	
-	static TablespaceManager of(ManagerType type, String tsPath, TablespaceHeader tsHeader) throws IOException {
-		if (type == ManagerType.SingleTablespaceManager) {
-			return SingleTablespaceManager.create(tsPath, tsHeader);
-		}	
-		
-		throw new IllegalArgumentException("Unsupported TablespaceManager type");
-	}*/
-	
 	void createTableInfoEntry(TableMetaInfo tableMetaInfo);
 	
 	void loadTableInfoEntry();

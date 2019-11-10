@@ -37,6 +37,9 @@ public final class ResultTable implements Table {
 	}
 	
 	@Override
+	public void close() {}
+	
+	@Override
 	public void begin() {
 		throw new UnsupportedOperationException();
 	}

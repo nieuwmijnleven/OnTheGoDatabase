@@ -35,14 +35,10 @@ public final class Database {
 	private Map<String,Table> tables = new HashMap<>();
 	
 	public Database(String path) throws DatabaseException {
-		this(Paths.get(path));
+		open(Paths.get(path));
 	}
 	
-	public Database(Path path) throws DatabaseException {
-		useDatabase(path);
-	}
-
-	private void useDatabase(Path path) throws DatabaseException {
+	private void open(Path path) throws DatabaseException {
 		tables.clear();
 		
 		this.location = path;
@@ -53,14 +49,24 @@ public final class Database {
 		}
 	}
 	
+	public void close() {
+		for (Table table : tables.values()) {
+			table.close();
+		}
+		
+		tables.clear();
+	}
+
+	
 	private void loadTables() throws IOException {
 		Files.list(this.location)
 		.filter(Files::isRegularFile)
 		.map(filePath -> filePath.getName(filePath.getNameCount() - 1).toString())
 		.filter(fileName -> fileName.substring(fileName.lastIndexOf(".") + 1).equals("db"))
-		.map(fileName -> fileName.substring(fileName.lastIndexOf(".") + 1))
+		.map(fileName -> fileName.substring(0, fileName.lastIndexOf(".")))
 		.forEach(tableName -> {
 			try {
+				//System.out.println(location.toString() + "/" + tableName);
 				Table table = StandardTable.load(location.toString(), tableName);
 				tables.put(tableName, table);
 			} catch (IOException e) {
@@ -216,7 +222,7 @@ public final class Database {
 			throw new DatabaseException("The number of columns is not consistent with that of values");
 		}
 		
-		affectedRowCount = table.update(new Filtration.DefaultFilter() {
+		affectedRowCount = table.update(new DefaultFilter() {
 			@Override
 			public boolean filter(Cursor[] cursor) {
 				try {
@@ -230,6 +236,7 @@ public final class Database {
 			@Override
 			public void update(Cursor cursor) {
 				try {
+//					System.out.println("updated value = " + values.get(0).evaluate(new Cursor[]{cursor}).toString());
 					cursor.update(columns.get(0).getName(), values.get(0).evaluate(new Cursor[]{cursor}).toString());
 				} catch (ExpressionEvaluationException e) {
 					throw new DatabaseException(e);
@@ -259,7 +266,7 @@ public final class Database {
 		});
 		
 		return affectedRowCount;
-	}
+	} 
 	
 	public Table execute(String query) throws DatabaseException {
 		SQLProcessor processor = new SQLProcessor(query);
@@ -281,7 +288,7 @@ public final class Database {
 			dropTable(result.getTable());
 			break;
 		case USE_DATABASE:
-			useDatabase(Paths.get(result.getDatabase()));
+			open(Paths.get(result.getDatabase()));
 			break;
 		case BEGIN_TRANSACTION:
 			begin();
@@ -308,5 +315,9 @@ public final class Database {
 		}
 		
 		return null;
+	}
+	
+	public int getAffectedRowCount() {
+		return affectedRowCount;
 	}
 }

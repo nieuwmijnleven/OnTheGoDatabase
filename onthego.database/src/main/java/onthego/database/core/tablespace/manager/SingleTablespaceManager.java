@@ -454,12 +454,11 @@ public class SingleTablespaceManager implements TablespaceManager {
 		boolean prevBlockAllocationStatus = getBlockAllocationStatus(getPrevBlockPos(blockPos));
 		boolean nextBlockAllocationStatus = getBlockAllocationStatus(getNextBlockPos(blockPos));
 		
-		System.out.println("=======================");
-		System.out.println("blockPos = " + blockPos);
-		System.out.println("size = " + size);
-		System.out.println("prevBlockAllocationStatus = " + prevBlockAllocationStatus);
-		System.out.println("nextBlockAllocationStatus = " + nextBlockAllocationStatus);
-		
+//		System.out.println("========= free block info =========");
+//		System.out.println("blockPos = " + blockPos);
+//		System.out.println("size = " + size);
+//		System.out.println("prevBlockAllocationStatus = " + prevBlockAllocationStatus);
+//		System.out.println("nextBlockAllocationStatus = " + nextBlockAllocationStatus);
 		
 		//coalescing adjacent unallocated blocks
 		if (prevBlockAllocationStatus && nextBlockAllocationStatus) {
@@ -471,9 +470,9 @@ public class SingleTablespaceManager implements TablespaceManager {
 			int prevBlockSize = getBlockSize(prevBlockPos);
 			int newSize = prevBlockSize + size;
 			
-			System.out.println("prevBlockPos = " + prevBlockPos);
-			System.out.println("prevBlockSize = " + prevBlockSize);
-			System.out.println("newSize = " + newSize);
+//			System.out.println("prevBlockPos = " + prevBlockPos);
+//			System.out.println("prevBlockSize = " + prevBlockSize);
+//			System.out.println("newSize = " + newSize);
 
 			putBlockHeader(prevBlockPos, pack(newSize, 0));
 			putBlockFooter(prevBlockPos, pack(newSize, 0));
@@ -482,9 +481,9 @@ public class SingleTablespaceManager implements TablespaceManager {
 			int nextBlockSize = getBlockSize(nextBlockPos);
 			int newSize = size + nextBlockSize;
 			
-			System.out.println("nextBlockPos = " + nextBlockPos);
-			System.out.println("nextBlockSize = " + nextBlockSize);
-			System.out.println("newSize = " + newSize);
+//			System.out.println("nextBlockPos = " + nextBlockPos);
+//			System.out.println("nextBlockSize = " + nextBlockSize);
+//			System.out.println("newSize = " + newSize);
 
 			putBlockHeader(blockPos, pack(newSize, 0));
 			putBlockFooter(blockPos, pack(newSize, 0));
@@ -498,11 +497,11 @@ public class SingleTablespaceManager implements TablespaceManager {
 			int nextBlockSize = getBlockSize(nextBlockPos);
 			int newSize = prevBlockSize + size + nextBlockSize;
 			
-			System.out.println("prevBlockPos = " + prevBlockPos);
-			System.out.println("prevBlockSize = " + prevBlockSize);
-			System.out.println("nextBlockPos = " + nextBlockPos);
-			System.out.println("nextBlockSize = " + nextBlockSize);
-			System.out.println("newSize = " + newSize);
+//			System.out.println("prevBlockPos = " + prevBlockPos);
+//			System.out.println("prevBlockSize = " + prevBlockSize);
+//			System.out.println("nextBlockPos = " + nextBlockPos);
+//			System.out.println("nextBlockSize = " + nextBlockSize);
+//			System.out.println("newSize = " + newSize);
 
 			putBlockHeader(prevBlockPos, pack(newSize, 0));
 			putBlockFooter(prevBlockPos, pack(newSize, 0));
@@ -510,7 +509,7 @@ public class SingleTablespaceManager implements TablespaceManager {
 			deleteFreeBlock(nextBlockPos);
 		}
 		
-		System.out.println("=======================");
+//		System.out.println("=======================");
 	}
 	
 	public byte[] readBlock(long blockPos) {
