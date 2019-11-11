@@ -3,7 +3,7 @@ package onthego.database.core.table.meta;
 public enum TypeConstants {
 	
 	CHAR("CHAR", 1), VARCHAR("VARCHAR", 2), INTEGER("INTEGER", 3), 
-	NUMERIC("NUMERIC", 4), BOOL("BOOL", 5), CONST("CONST", 6), NIL("NIL", 7);
+	NUMERIC("NUMERIC", 4), BOOL("BOOL", 5), CONST("CONST", 6), NULL("NIL", 7);
 	
 	private String name;
 	

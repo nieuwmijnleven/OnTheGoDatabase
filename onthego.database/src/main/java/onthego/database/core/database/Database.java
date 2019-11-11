@@ -156,7 +156,7 @@ public final class Database {
 		}
 		
 		Table table = tables.get(tableName);
-		Table resultTable = table.select(new DefaultFilter() {
+		Table resultTable = table.select(columns, new DefaultFilter() {
 			@Override
 			public boolean filter(Cursor[] cursor) {
 				try {

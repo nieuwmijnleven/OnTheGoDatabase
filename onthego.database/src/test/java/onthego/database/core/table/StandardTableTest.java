@@ -61,7 +61,13 @@ public class StandardTableTest {
 	
 	@Test
 	public void testSelect() throws IOException {
-		Table resultTable = table.select(new Filtration.DefaultFilter() {
+		List<ColumnType> selectColumns = new ArrayList<>();
+		selectColumns.add(new ColumnType("serial_no", Type.of(TypeConstants.INTEGER, 10, 0)));
+		selectColumns.add(new ColumnType("name", Type.of(TypeConstants.CHAR, 20, 0)));
+		selectColumns.add(new ColumnType("price", Type.of(TypeConstants.NUMERIC, 10, 3)));
+		selectColumns.add(new ColumnType("on_sale", Type.of(TypeConstants.BOOL, 0, 0)));
+		
+		Table resultTable = table.select(selectColumns, new Filtration.DefaultFilter() {
 			@Override
 			public boolean filter(Cursor[] cursor) {
 				return cursor[0].getColumn("serial_no").equals("100")

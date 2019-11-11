@@ -128,7 +128,7 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
-	public Table select(Filtration filtration) {
+	public Table select(List<ColumnType> selectColumn, Filtration filtration) {
 		List<byte[]> filteredRecords = new ArrayList<>();
 	 	Cursor cursor = getCursor();
 		while (cursor.next()) {
@@ -136,7 +136,13 @@ public class StandardTable implements Table {
 				filteredRecords.add(cursor.getRawRecord());
 			}
 		}
-		return new ResultTable(getTableName(), getColumnList(), filteredRecords);
+		
+		if (selectColumn.size() == 0) {
+			return new ResultTable(getTableName(), getColumnList(), filteredRecords);
+		}
+		return new ResultTable(getTableName(), 
+							selectColumn, 
+							filteredRecords);
 	}
 	
 	@Override
@@ -297,15 +303,44 @@ public class StandardTable implements Table {
 		}
 		
 		@Override
+		public int getColumnCount() {
+			return StandardTable.this.getColumnCount();
+		}
+		
+		@Override
+		public ColumnType getColumnType(int columnIdx) {
+			isValidColumnIndex(columnIdx);
+			return getColumnList().get(columnIdx);
+		}
+		
+		@Override
 		public ColumnType getColumnType(String columnName) {
-//			isValidColumnName(columnName);
+			isValidColumnName(columnName);
 			return getColumnList().get(getColumnIndex(columnName));
+		}
+		
+		@Override
+		public String getColumn(int columnIdx) {
+			isValidColumnIndex(columnIdx);
+			return StandardTableUtil.readColumnData(record, columnIdx);
 		}
 
 		@Override
 		public String getColumn(String columnName) {
-//			isValidColumnName(columnName);
+			isValidColumnName(columnName);
 			return StandardTableUtil.readColumnData(record, getColumnIndex(columnName));
+		}
+		
+		private void isValidColumnName(String columnName) {
+			if (getColumnIndex(columnName) == -1) {
+				throw new IllegalArgumentException(columnName + " is not a valid column name");
+			}
+		}
+		
+		private void isValidColumnIndex(int columnIdx) {
+			if (columnIdx < 0 || columnIdx >= getColumnList().size()) {
+				throw new IllegalArgumentException(columnIdx + " is not a valid column index.");
+			}
 		}
 		
 		@Override

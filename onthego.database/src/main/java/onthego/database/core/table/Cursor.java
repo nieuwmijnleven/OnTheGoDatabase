@@ -10,7 +10,13 @@ public interface Cursor {
 	
 	boolean next();
 	
+	int getColumnCount();
+	
+	String getColumn(int columnIdx);
+	
 	String getColumn(String columnName);
+	
+	ColumnType getColumnType(int columnIdx);
 	
 	ColumnType getColumnType(String columnName);
 	

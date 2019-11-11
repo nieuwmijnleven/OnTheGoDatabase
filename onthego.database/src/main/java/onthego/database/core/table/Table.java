@@ -14,7 +14,9 @@ public interface Table {
 
 	void commit(boolean all);
 	
-	Table select(Filtration filtration);
+	Table select(List<ColumnType> selectColumn, Filtration filtration);
+	
+//	Table select(Filtration filtration);
 
 	long insert(Map<ColumnType, String> values);
 

@@ -17,13 +17,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import onthego.database.core.database.Database;
-
 public class JDBCTest {
 	
 	public static final int TEST_RECORD_COUNT = 100;
 	
-	public static final Path DATABASE_PATH = Paths.get(".", "onthego-database");
+	public static final Path DATABASE_PATH = Paths.get(".", "onthego_database");
 	
 	public static final Path TABLE_PATH = DATABASE_PATH.resolve("product.db");
 	
@@ -31,27 +29,52 @@ public class JDBCTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		Database database = new Database(".");
-		database.createDatabase(DATABASE_PATH.getFileName().toString());
-		
-		Class.forName("onthego.database.jdbc.JDBCDriver");
-		
+		loadJDBCDriver();
+		createTestDatabase();
+		createTestTable();
+		inserTestData();
+	}
+
+	private void loadJDBCDriver() throws ClassNotFoundException {
+		try {
+			Class.forName("onthego.database.jdbc.JDBCDriver");
+		} catch (ClassNotFoundException e) {
+			throw e;
+		}
+	}
+
+	private void inserTestData() throws SQLException {
 		try (Connection conn = DriverManager.getConnection(JDBC_URL);
 			 Statement stmt = conn.createStatement();) {
-			
+			for (int i = 0; i < TEST_RECORD_COUNT; ++i) {
+				String insertQuery = "insert into product(serial_no, name, price) "
+								   + "values("+ i +", 'smartphone" + i + "', " + i * 100 + ")";
+				stmt.executeUpdate(insertQuery);
+			}
+		} catch (SQLException e) {
+			throw e;
+		}
+	}
+
+	private void createTestTable() throws SQLException {
+		try (Connection conn = DriverManager.getConnection(JDBC_URL);
+			 Statement stmt = conn.createStatement();) {
 			String createQuery = "create table product("
 					+ "serial_no integer(10),"
 					+ "name char(30),"
 					+ "price numeric(10,3)"				
 					+ ")";
 			stmt.executeUpdate(createQuery);
-			
-			
-			for (int i = 0; i < TEST_RECORD_COUNT; ++i) {
-				String insertQuery = "insert into product(serial_no, name, price) "
-								   + "values("+ i +", 'smartphone" + i + "', " + i * 100 + ")";
-				stmt.executeUpdate(insertQuery);
-			}
+		} catch (SQLException e) {
+			throw e;
+		}
+	}
+
+	private void createTestDatabase() throws SQLException {
+		try (Connection conn = DriverManager.getConnection("jdbc:onthego:.");
+			 Statement stmt = conn.createStatement();) {
+			String createQuery = "create database onthego_database";
+			stmt.executeUpdate(createQuery);
 		} catch (SQLException e) {
 			throw e;
 		}

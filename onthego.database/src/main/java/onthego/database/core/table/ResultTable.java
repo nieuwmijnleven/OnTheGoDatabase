@@ -56,7 +56,7 @@ public final class ResultTable implements Table {
 	}
 	
 	@Override
-	public Table select(Filtration filtration) {
+	public Table select(List<ColumnType> selectColumn, Filtration filtration) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -121,9 +121,26 @@ public final class ResultTable implements Table {
 		}
 		
 		@Override
+		public int getColumnCount() {
+			return ResultTable.this.getColumnCount();
+		}
+		
+		@Override
+		public ColumnType getColumnType(int columnIdx) {
+			isValidColumnIndex(columnIdx);
+			return columnTypeList.get(columnIdx);
+		}
+		
+		@Override
 		public ColumnType getColumnType(String columnName) {
 			isValidColumnName(columnName);
 			return columnTypeList.get(columnTypeIndexMap.get(columnName));
+		}
+		
+		@Override
+		public String getColumn(int columnIdx) {
+			isValidColumnIndex(columnIdx);
+			return StandardTableUtil.readColumnData(record, columnIdx);
 		}
 
 		@Override
@@ -135,6 +152,12 @@ public final class ResultTable implements Table {
 		private void isValidColumnName(String columnName) {
 			if (!columnTypeIndexMap.containsKey(columnName)) {
 				throw new IllegalArgumentException(columnName + " is not a valid column name");
+			}
+		}
+		
+		private void isValidColumnIndex(int columnIdx) {
+			if (columnIdx < 0 || columnIdx >= columnTypeList.size()) {
+				throw new IllegalArgumentException(columnIdx + " is not a valid column index.");
 			}
 		}
 

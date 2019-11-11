@@ -28,7 +28,7 @@ public abstract class Type {
 			return new BoolType();
 		} else if (typeConstants == TypeConstants.CONST) {
 			return new ConstType();
-		} else if (typeConstants == TypeConstants.NIL) {
+		} else if (typeConstants == TypeConstants.NULL) {
 			return new NullType();
 		} else {
 			throw new TypeException("Could not create a type with a wrong TypeConstants's value.");
