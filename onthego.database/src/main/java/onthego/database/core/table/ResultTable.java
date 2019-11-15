@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import onthego.database.core.table.meta.ColumnType;
 import onthego.database.core.tablespace.manager.TablespaceManager;
@@ -16,13 +18,16 @@ public final class ResultTable implements Table {
 	
 	private final List<ColumnType> columnTypeList;
 	
+	private final List<Integer> columnIndexList;
+	
 	private final List<byte[]> records;
 	
 	private final Map<String,Integer> columnTypeIndexMap;
 	
-	public ResultTable(String tableName, List<ColumnType> columnList, List<byte[]> records) {
+	public ResultTable(String tableName, List<ColumnType> columnList, List<Integer> columnIndexList, List<byte[]> records) {
 		this.tableName = tableName;
 		this.columnTypeList = columnList;
+		this.columnIndexList = columnIndexList;
 		this.records = records;
 		this.columnTypeIndexMap = new HashMap<>();
 		
@@ -32,7 +37,7 @@ public final class ResultTable implements Table {
 	private void initialize() {
 		for (int i = 0; i < this.columnTypeList.size(); ++i) {
 			ColumnType column = this.columnTypeList.get(i);
-			this.columnTypeIndexMap.put(column.getName(), i);
+			this.columnTypeIndexMap.put(column.getName(), columnIndexList.get(i));
 		}
 	}
 	
@@ -47,7 +52,6 @@ public final class ResultTable implements Table {
 	@Override
 	public void rollback(boolean all) {
 		throw new UnsupportedOperationException();
-
 	}
 
 	@Override
@@ -62,6 +66,10 @@ public final class ResultTable implements Table {
 
 	@Override
 	public long insert(Map<ColumnType, String> values) {
+		throw new UnsupportedOperationException();
+	}
+	
+	public Cursor getCursor(List<ColumnType> selectColumn) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -139,8 +147,10 @@ public final class ResultTable implements Table {
 		
 		@Override
 		public String getColumn(int columnIdx) {
-			isValidColumnIndex(columnIdx);
-			return StandardTableUtil.readColumnData(record, columnIdx);
+			String columnName = columnTypeList.get(columnIdx).getName();
+			return getColumn(columnTypeIndexMap.get(columnName));
+//			isValidColumnIndex(columnIdx);
+//			return StandardTableUtil.readColumnData(record, columnIdx);
 		}
 
 		@Override
@@ -168,7 +178,7 @@ public final class ResultTable implements Table {
 
 		@Override
 		public Iterator<String> getRecord() {
-			return new StandardRecordIterator(record, getColumnCount());
+			return new StandardRecordIterator(record, columnIndexList);
 		} 
 
 		@Override

@@ -10,6 +10,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import onthego.database.core.index.BTreeIndex;
 import onthego.database.core.table.meta.ColumnType;
@@ -128,7 +130,7 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
-	public Table select(List<ColumnType> selectColumn, Filtration filtration) {
+	public Table select(List<ColumnType> selectColumns, Filtration filtration) {
 		List<byte[]> filteredRecords = new ArrayList<>();
 	 	Cursor cursor = getCursor();
 		while (cursor.next()) {
@@ -137,12 +139,27 @@ public class StandardTable implements Table {
 			}
 		}
 		
-		if (selectColumn.size() == 0) {
-			return new ResultTable(getTableName(), getColumnList(), filteredRecords);
+		if (selectColumns.size() == 0) {
+			List<Integer> selectColumnIndexList = IntStream.range(0, getColumnList().size())
+														.boxed().collect(Collectors.toList());
+			return new ResultTable(getTableName(), getColumnList(), selectColumnIndexList, filteredRecords);
+		} else {
+			List<Integer> selectColumnIndexList = new ArrayList<>();
+			for (ColumnType column : selectColumns) {
+				selectColumnIndexList.add(getColumnIndex(column.getName()));
+			}
+			return new ResultTable(getTableName(), convertToRealColumnType(selectColumns), selectColumnIndexList, filteredRecords);
 		}
-		return new ResultTable(getTableName(), 
-							selectColumn, 
-							filteredRecords);
+		
+	}
+
+	private List<ColumnType> convertToRealColumnType(List<ColumnType> selectColumns) {
+		List<ColumnType> realSelectColumns = new ArrayList<>();
+		for (ColumnType column : selectColumns) {
+			int columnIndex = getColumnIndex(column.getName());
+			realSelectColumns.add(getColumnList().get(columnIndex));
+		}
+		return realSelectColumns;
 	}
 	
 	@Override
@@ -176,8 +193,13 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
+	public Cursor getCursor(List<ColumnType> selectColumn) {
+		return new StandardTableCursor(selectColumn);
+	}
+	
+	@Override
 	public Cursor getCursor() {
-		return new StandardTableCursor();
+		return getCursor(getColumnList());
 	}
 	
 	@Override
@@ -283,10 +305,16 @@ public class StandardTable implements Table {
 		
 		private final Iterator<Long> tableIndexIterator = clusteredIndex.iterator();
 		
+		private final List<ColumnType> selectColumn;
+		
 		private long recordPos;
 		
 		private byte[] record;
 		
+		public StandardTableCursor(List<ColumnType> selectColumn) {
+			this.selectColumn = selectColumn;
+		}
+
 		@Override
 		public String getTableName() {
 			return StandardTable.this.getTableName();
@@ -304,43 +332,52 @@ public class StandardTable implements Table {
 		
 		@Override
 		public int getColumnCount() {
-			return StandardTable.this.getColumnCount();
+			return selectColumn.size();
+			//return StandardTable.this.getColumnCount();
 		}
 		
 		@Override
 		public ColumnType getColumnType(int columnIdx) {
-			isValidColumnIndex(columnIdx);
-			return getColumnList().get(columnIdx);
+			return selectColumn.get(columnIdx);
+//			isValidColumnIndex(columnIdx);
+//			return getColumnList().get(columnIdx);
 		}
 		
 		@Override
 		public ColumnType getColumnType(String columnName) {
-			isValidColumnName(columnName);
+			if (!isValidColumnName(columnName)) {
+				throw new IllegalArgumentException(columnName + " is not a valid column name");
+			}
 			return getColumnList().get(getColumnIndex(columnName));
 		}
 		
 		@Override
 		public String getColumn(int columnIdx) {
-			isValidColumnIndex(columnIdx);
-			return StandardTableUtil.readColumnData(record, columnIdx);
+			if (!isValidColumnIndex(columnIdx)) {
+				throw new IllegalArgumentException(columnIdx + " is not a valid column index.");
+			}
+			
+			String columnName = selectColumn.get(columnIdx).getName();
+			return StandardTableUtil.readColumnData(record, getColumnIndex(columnName));
 		}
 
 		@Override
 		public String getColumn(String columnName) {
-			isValidColumnName(columnName);
+			if (!isValidColumnName(columnName)) {
+				throw new IllegalArgumentException(columnName + " is not a valid column name");
+			}
 			return StandardTableUtil.readColumnData(record, getColumnIndex(columnName));
 		}
 		
-		private void isValidColumnName(String columnName) {
-			if (getColumnIndex(columnName) == -1) {
-				throw new IllegalArgumentException(columnName + " is not a valid column name");
-			}
+		private boolean isValidColumnName(String columnName) {
+			return selectColumn.stream().anyMatch(column -> column.getName().equalsIgnoreCase(columnName));
 		}
 		
-		private void isValidColumnIndex(int columnIdx) {
-			if (columnIdx < 0 || columnIdx >= getColumnList().size()) {
-				throw new IllegalArgumentException(columnIdx + " is not a valid column index.");
+		private boolean isValidColumnIndex(int columnIdx) {
+			if (columnIdx < 0 || columnIdx >= selectColumn.size()) {
+				return false;
 			}
+			return true;
 		}
 		
 		@Override
@@ -350,7 +387,13 @@ public class StandardTable implements Table {
 
 		@Override
 		public Iterator<String> getRecord() {
-			return new StandardRecordIterator(record, getColumnList().size());
+			//valid index 
+			//return new StandardRecordIterator(record, new int[]{index no,...});
+			List<Integer> selectColumnIndex = new ArrayList<>();
+			for (ColumnType column : selectColumn) {
+				selectColumnIndex.add(getColumnIndex(column.getName()));
+			}
+			return new StandardRecordIterator(record, selectColumnIndex);
 		}
 
 		@Override

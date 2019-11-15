@@ -14,7 +14,7 @@ public final class NumberValue extends Value {
 
 	public NumberValue(String value) throws ParseException {
 		super(Value.Type.NUMBER);
-		this.value = NumberFormat.getInstance().parse(value).doubleValue();
+		this.value = Double.parseDouble(value);
 	}
 	
 	public double getValue() {

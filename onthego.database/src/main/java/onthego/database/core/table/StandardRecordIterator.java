@@ -1,22 +1,26 @@
 package onthego.database.core.table;
 
 import java.util.Iterator;
+import java.util.List;
 
 public class StandardRecordIterator implements Iterator<String> {
 	
 	private byte[] record;
 	
-	private int columnCount;
+	private List<Integer> selectColumnIndex;
+	
+	private final int columnCount;
 	
 	private int columnIndex;
-	
-	public StandardRecordIterator(byte[] record, int columnCount) {
+
+	public StandardRecordIterator(byte[] record, List<Integer> selectColumnIndex) {
 		if (record == null) {
 			throw new IllegalArgumentException();
 		}
 		
 		this.record = record;
-		this.columnCount = columnCount;
+		this.selectColumnIndex = selectColumnIndex;
+		this.columnCount = selectColumnIndex.size();
 		this.columnIndex = 0;
 	}
 
@@ -33,7 +37,6 @@ public class StandardRecordIterator implements Iterator<String> {
 		if (!hasNext()) {
 			throw new IndexOutOfBoundsException();
 		}
-		return StandardTableUtil.readColumnData(record, columnIndex++);
+		return StandardTableUtil.readColumnData(record, selectColumnIndex.get(columnIndex++));
 	}
-
 }

@@ -21,6 +21,8 @@ public interface Table {
 	long insert(Map<ColumnType, String> values);
 
 	Cursor getCursor();
+	
+	Cursor getCursor(List<ColumnType> selectColumn);
 
 	int update(Filtration filtration);
 
