@@ -138,28 +138,20 @@ public class StandardTable implements Table {
 				filteredRecords.add(cursor.getRawRecord());
 			}
 		}
-		
-		if (selectColumns.size() == 0) {
-			List<Integer> selectColumnIndexList = IntStream.range(0, getColumnList().size())
-														.boxed().collect(Collectors.toList());
-			return new ResultTable(getTableName(), getColumnList(), selectColumnIndexList, filteredRecords);
-		} else {
-			List<Integer> selectColumnIndexList = new ArrayList<>();
-			for (ColumnType column : selectColumns) {
-				selectColumnIndexList.add(getColumnIndex(column.getName()));
-			}
-			return new ResultTable(getTableName(), convertToRealColumnType(selectColumns), selectColumnIndexList, filteredRecords);
-		}
-		
+		return new ResultTable(getTableName(), selectColumns, getColumnRealIndexList(selectColumns), filteredRecords);
 	}
-
-	private List<ColumnType> convertToRealColumnType(List<ColumnType> selectColumns) {
-		List<ColumnType> realSelectColumns = new ArrayList<>();
-		for (ColumnType column : selectColumns) {
-			int columnIndex = getColumnIndex(column.getName());
-			realSelectColumns.add(getColumnList().get(columnIndex));
+	
+	private List<Integer> getColumnRealIndexList(List<ColumnType> selectColumns) {
+		if (selectColumns.size() == 0) {
+			return IntStream.range(0, getColumnList().size())
+							.boxed().collect(Collectors.toList());
+		} else {
+			List<Integer> selectColumnRealIndexList = new ArrayList<>();
+			for (ColumnType column : selectColumns) {
+				selectColumnRealIndexList.add(getColumnIndex(column.getName()));
+			}
+			return selectColumnRealIndexList;
 		}
-		return realSelectColumns;
 	}
 	
 	@Override
@@ -333,14 +325,11 @@ public class StandardTable implements Table {
 		@Override
 		public int getColumnCount() {
 			return selectColumn.size();
-			//return StandardTable.this.getColumnCount();
 		}
 		
 		@Override
 		public ColumnType getColumnType(int columnIdx) {
 			return selectColumn.get(columnIdx);
-//			isValidColumnIndex(columnIdx);
-//			return getColumnList().get(columnIdx);
 		}
 		
 		@Override
@@ -387,13 +376,13 @@ public class StandardTable implements Table {
 
 		@Override
 		public Iterator<String> getRecord() {
-			//valid index 
-			//return new StandardRecordIterator(record, new int[]{index no,...});
-			List<Integer> selectColumnIndex = new ArrayList<>();
-			for (ColumnType column : selectColumn) {
-				selectColumnIndex.add(getColumnIndex(column.getName()));
-			}
-			return new StandardRecordIterator(record, selectColumnIndex);
+			return new StandardRecordIterator(record, mapToColumnRealIndex());
+		}
+
+		private List<Integer> mapToColumnRealIndex() {
+			return selectColumn.stream()
+							   .map(column -> getColumnIndex(column.getName()))
+							   .collect(Collectors.toList());
 		}
 
 		@Override

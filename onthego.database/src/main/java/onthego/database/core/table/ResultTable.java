@@ -18,26 +18,25 @@ public final class ResultTable implements Table {
 	
 	private final List<ColumnType> columnTypeList;
 	
-	private final List<Integer> columnIndexList;
+	private final List<Integer> columnRealIndexList;
+	
+	private final Map<String,Integer> columnTypeIndexMap = new HashMap<>();
 	
 	private final List<byte[]> records;
 	
-	private final Map<String,Integer> columnTypeIndexMap;
-	
-	public ResultTable(String tableName, List<ColumnType> columnList, List<Integer> columnIndexList, List<byte[]> records) {
+	public ResultTable(String tableName, List<ColumnType> columnList, List<Integer> columnRealIndexList, List<byte[]> records) {
 		this.tableName = tableName;
 		this.columnTypeList = columnList;
-		this.columnIndexList = columnIndexList;
 		this.records = records;
-		this.columnTypeIndexMap = new HashMap<>();
+		this.columnRealIndexList = columnRealIndexList;
 		
-		initialize();
+		initColumnTypeIndexMap();
 	}
 
-	private void initialize() {
+	private void initColumnTypeIndexMap() {
 		for (int i = 0; i < this.columnTypeList.size(); ++i) {
 			ColumnType column = this.columnTypeList.get(i);
-			this.columnTypeIndexMap.put(column.getName(), columnIndexList.get(i));
+			this.columnTypeIndexMap.put(column.getName(), columnRealIndexList.get(i));
 		}
 	}
 	
@@ -97,6 +96,10 @@ public final class ResultTable implements Table {
 	public TablespaceManager getTablespaceManager() {
 		throw new UnsupportedOperationException();
 	}
+	
+	private int getColumnIndex(String columnName) {
+		return columnTypeIndexMap.get(columnName);
+	}
 
 	@Override
 	public List<ColumnType> getColumnList() {
@@ -135,40 +138,46 @@ public final class ResultTable implements Table {
 		
 		@Override
 		public ColumnType getColumnType(int columnIdx) {
-			isValidColumnIndex(columnIdx);
+			if (!isValidColumnIndex(columnIdx)) {
+				throw new IllegalArgumentException(columnIdx + " is not a valid column index.");
+			}
 			return columnTypeList.get(columnIdx);
 		}
 		
 		@Override
 		public ColumnType getColumnType(String columnName) {
-			isValidColumnName(columnName);
-			return columnTypeList.get(columnTypeIndexMap.get(columnName));
+			if (!isValidColumnName(columnName)) {
+				throw new IllegalArgumentException(columnName + " is not a valid column name");
+			}
+			return columnTypeList.get(getColumnIndex(columnName));
 		}
 		
 		@Override
 		public String getColumn(int columnIdx) {
 			String columnName = columnTypeList.get(columnIdx).getName();
-			return getColumn(columnTypeIndexMap.get(columnName));
-//			isValidColumnIndex(columnIdx);
-//			return StandardTableUtil.readColumnData(record, columnIdx);
+			return getColumn(getColumnIndex(columnName));
 		}
 
 		@Override
 		public String getColumn(String columnName) {
-			isValidColumnName(columnName);
-			return StandardTableUtil.readColumnData(record, columnTypeIndexMap.get(columnName));
-		}
-		
-		private void isValidColumnName(String columnName) {
-			if (!columnTypeIndexMap.containsKey(columnName)) {
+			if (!isValidColumnName(columnName)) {
 				throw new IllegalArgumentException(columnName + " is not a valid column name");
 			}
+			return StandardTableUtil.readColumnData(record, getColumnIndex(columnName));
 		}
 		
-		private void isValidColumnIndex(int columnIdx) {
-			if (columnIdx < 0 || columnIdx >= columnTypeList.size()) {
-				throw new IllegalArgumentException(columnIdx + " is not a valid column index.");
+		private boolean isValidColumnName(String columnName) {
+			if (!columnTypeIndexMap.containsKey(columnName)) {
+				return false;
 			}
+			return true;
+		}
+		
+		private boolean isValidColumnIndex(int columnIdx) {
+			if (columnIdx < 0 || columnIdx >= columnTypeList.size()) {
+				return false;
+			}
+			return true;
 		}
 
 		@Override
@@ -178,7 +187,7 @@ public final class ResultTable implements Table {
 
 		@Override
 		public Iterator<String> getRecord() {
-			return new StandardRecordIterator(record, columnIndexList);
+			return new StandardRecordIterator(record, columnRealIndexList);
 		} 
 
 		@Override
