@@ -1,6 +1,8 @@
 package onthego.database.core.sqlprocessor;
 
-public class SQLProcessorException extends Exception {
+import onthego.database.core.database.DatabaseException;
+
+public class SQLProcessorException extends DatabaseException {
 
 	public SQLProcessorException() {
 		// TODO Auto-generated constructor stub

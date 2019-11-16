@@ -13,6 +13,7 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import onthego.database.core.database.DatabaseException;
 import onthego.database.core.index.BTreeIndex;
 import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.tablespace.manager.SingleTablespaceManager;
@@ -130,7 +131,7 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
-	public Table select(List<ColumnMeta> selectColumns, Filtration filtration) {
+	public Table select(List<ColumnMeta> selectColumns, Filtration filtration) throws DatabaseException {
 		List<byte[]> filteredRecords = new ArrayList<>();
 	 	Cursor cursor = getCursor();
 		while (cursor.next()) {
@@ -195,7 +196,7 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
-	public int update(Filtration filtration) {
+	public int update(Filtration filtration) throws DatabaseException {
 		int updated = 0;
 		Cursor cursor = getCursor();
 		while (cursor.next()) {
@@ -208,7 +209,7 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
-	public int delete(Filtration filtration) {
+	public int delete(Filtration filtration) throws DatabaseException {
 		int deleted = 0;
 		Cursor cursor = getCursor();
 		while (cursor.next()) {

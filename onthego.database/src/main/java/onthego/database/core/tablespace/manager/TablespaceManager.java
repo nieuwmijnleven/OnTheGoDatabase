@@ -2,7 +2,7 @@ package onthego.database.core.tablespace.manager;
 
 import java.io.IOException;
 
-import onthego.database.core.exception.MarginalPayloadSpaceException;
+import onthego.database.core.exception.InsufficientPayloadSpaceException;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
 import onthego.database.core.tablespace.meta.TablespaceHeader;
 
@@ -34,7 +34,7 @@ public interface TablespaceManager {
 	
 	public byte[] readBlock(long blockPos);
 	
-	public void writeBlock(long blockPos, byte[] payload) throws MarginalPayloadSpaceException;
+	public void writeBlock(long blockPos, byte[] payload) throws InsufficientPayloadSpaceException;
 	
 	void close();
 

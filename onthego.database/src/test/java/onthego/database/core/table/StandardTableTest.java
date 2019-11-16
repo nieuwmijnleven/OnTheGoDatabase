@@ -7,7 +7,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -18,8 +17,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import onthego.database.core.database.DatabaseException;
 import onthego.database.core.table.meta.ColumnMeta;
-import onthego.database.core.table.meta.Type;
 import onthego.database.core.table.meta.TypeConstants;
 import onthego.database.core.table.meta.Types;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
@@ -61,7 +60,7 @@ public class StandardTableTest {
 	}
 	
 	@Test
-	public void testSelect() throws IOException {
+	public void testSelect() throws DatabaseException {
 		List<ColumnMeta> selectColumns = new ArrayList<>();
 		selectColumns.add(new ColumnMeta("serial_no", Types.of(TypeConstants.INTEGER, 10, 0)));
 		selectColumns.add(new ColumnMeta("name", Types.of(TypeConstants.CHAR, 20, 0)));
@@ -89,7 +88,7 @@ public class StandardTableTest {
 	}
 
 	@Test
-	public void testInsert() throws IOException {
+	public void testInsert() throws DatabaseException {
 		Cursor cursor = table.getCursor();
 		cursor.next();
 		
@@ -112,7 +111,7 @@ public class StandardTableTest {
 	}
 	
 	@Test
-	public void testUpdate() throws IOException {
+	public void testUpdate() throws DatabaseException {
 		table.update(new Filtration() {
 			@Override
 			public boolean filter(Cursor[] cursor) {
@@ -149,7 +148,7 @@ public class StandardTableTest {
 	}
 	
 	@Test
-	public void testDelete() throws IOException {
+	public void testDelete() throws DatabaseException {
 		table.delete(new Filtration.DefaultFilter() {
 			@Override
 			public boolean filter(Cursor[] cursor) {
@@ -164,7 +163,7 @@ public class StandardTableTest {
 	}
 	
 	@Test
-	public void testRollback() throws IOException {
+	public void testRollback() throws DatabaseException {
 		Cursor cursor = table.getCursor();
 		assertTrue(cursor.next());
 		

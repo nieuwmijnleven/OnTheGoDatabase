@@ -22,7 +22,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import onthego.database.core.exception.MarginalPayloadSpaceException;
+import onthego.database.core.exception.InsufficientPayloadSpaceException;
 import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.table.meta.TypeConstants;
 import onthego.database.core.table.meta.Types;
@@ -210,7 +210,7 @@ public class SingleTablespaceManagerTest {
 				
 				byte[] payload = bout.toByteArray();
 				tsManager.writeBlock(blockPos, payload);
-			} catch(MarginalPayloadSpaceException ioe) {
+			} catch(InsufficientPayloadSpaceException ioe) {
 				throw new TablespaceManagerException(ioe);
 			} catch(IOException ioe) {
 				throw new TablespaceManagerException(ioe);

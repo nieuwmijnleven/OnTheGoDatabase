@@ -1,6 +1,6 @@
 package onthego.database.core.database;
 
-public class DatabaseException extends RuntimeException {
+public class DatabaseException extends Exception {
 
 	public DatabaseException() {
 		// TODO Auto-generated constructor stub

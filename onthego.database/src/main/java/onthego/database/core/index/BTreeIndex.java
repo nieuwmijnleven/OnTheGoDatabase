@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Stack;
 
-import onthego.database.core.exception.MarginalPayloadSpaceException;
+import onthego.database.core.exception.InsufficientPayloadSpaceException;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 
 public class BTreeIndex<T extends Comparable<? super T>> {
@@ -207,7 +207,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		byte[] payload = generatePayload(node);
 		try {
 			tsManager.writeBlock(node.pos, payload);
-		} catch (MarginalPayloadSpaceException e) {
+		} catch (InsufficientPayloadSpaceException e) {
 			retrySaveWithAdjustedSize(node, payload);
 		}
 	}
@@ -221,7 +221,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 				tsManager.saveRootPos(node.pos);
 			}
 			tsManager.writeBlock(node.pos, payload);
-		} catch (MarginalPayloadSpaceException e) {
+		} catch (InsufficientPayloadSpaceException e) {
 			throw new BTreeIndexException("it's impossible to save a payload into a tablespace");
 		}
 	}

@@ -1,8 +1,5 @@
 package onthego.database.core.sqlprocessor.value;
 
-import java.text.NumberFormat;
-import java.text.ParseException;
-
 public final class NumberValue extends Value {
 	
 	private double value;
@@ -12,7 +9,7 @@ public final class NumberValue extends Value {
 		this.value = value;
 	}
 
-	public NumberValue(String value) throws ParseException {
+	public NumberValue(String value) {
 		super(Value.Type.NUMBER);
 		this.value = Double.parseDouble(value);
 	}

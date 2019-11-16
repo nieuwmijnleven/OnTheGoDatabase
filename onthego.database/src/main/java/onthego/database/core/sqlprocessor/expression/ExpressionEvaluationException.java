@@ -1,6 +1,8 @@
 package onthego.database.core.sqlprocessor.expression;
 
-public class ExpressionEvaluationException extends Exception {
+import onthego.database.core.database.DatabaseException;
+
+public class ExpressionEvaluationException extends DatabaseException {
 
 	public ExpressionEvaluationException() {
 		// TODO Auto-generated constructor stub

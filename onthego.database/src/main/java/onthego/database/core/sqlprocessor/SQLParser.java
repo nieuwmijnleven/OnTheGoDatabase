@@ -1,7 +1,5 @@
 package onthego.database.core.sqlprocessor;
 
-import java.text.ParseException;
-
 import onthego.database.core.sqlprocessor.expression.ArithmeticExpression;
 import onthego.database.core.sqlprocessor.expression.AtomicExpression;
 import onthego.database.core.sqlprocessor.expression.Expression;
@@ -35,7 +33,7 @@ public class SQLParser {
 		try {
 			return doParse();
 		} catch (SQLScannerException e) {
-			throw new SQLParserException(e);
+			throw new SQLParserException(e.getMessage());
 		} 
 	}
 	
@@ -140,11 +138,7 @@ public class SQLParser {
 			value = new StringValue(scanner.getCurrentLexeme());
 			scanner.next();
 		} else if (scanner.match(TokenManager.getToken("NUMBER"))) {
-			try {
-				value = new NumberValue(scanner.getCurrentLexeme());
-			} catch (ParseException e) {
-				throw new SQLScannerException(scanner.getCurrentLexeme() + " could not be converted to a double type.");			
-			}
+			value = new NumberValue(scanner.getCurrentLexeme());
 			scanner.next();
 		} else if (scanner.match(TokenManager.getToken("NULL"))) {
 			value = new NullValue();
@@ -153,7 +147,6 @@ public class SQLParser {
 			value = new BooleanValue(scanner.getCurrentLexeme());
 			scanner.next();
 		} else {
-//			scanner.next(TokenManager.getToken("IDENTIFIER"));
 			String tableName = null;
 			String columnName = scanner.getCurrentLexeme();
 			scanner.next(TokenManager.getToken("IDENTIFIER"));

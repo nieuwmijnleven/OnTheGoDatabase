@@ -1,7 +1,6 @@
 package onthego.database.core.sqlprocessor;
 
 import java.util.Iterator;
-import java.util.Optional;
 import java.util.Scanner;
 
 import onthego.database.core.sqlprocessor.scanner.Token;
@@ -52,26 +51,28 @@ public class SQLScanner {
 			}
 			
 			if (currentToken == Token.NULL_TOKEN) {
-				StringBuilder message = new StringBuilder();
-				message.append("Line : ").append(currentLineNumber)
-				.append(", Postion: ").append(currentLinePos).append("\n")
-				.append(currentLine).append("\n");
-				for (int i = 0; i < currentLinePos; ++i) {
-					message.append("_");
-				}
-				message.append("^").append("\n");
-				
-				throw new SQLScannerException(message.toString());
-				//throw new SQLScannerException("Cannot recognize a token from " + currentLine.substring(currentLinePos));
+				throw new SQLScannerException(getFailInfo());
 			}
 		}
 		
 		return currentToken;
 	}
+
+	public String getFailInfo() {
+		StringBuilder message = new StringBuilder();
+		message.append("Line : ").append(currentLineNumber)
+		.append(", Postion: ").append(currentLinePos).append("\n")
+		.append(currentLine).append("\n");
+		for (int i = 0; i < currentLinePos; ++i) {
+			message.append("_");
+		}
+		message.append("^").append("\n");
+		return message.toString();
+	}
 	
 	public Token next(Token token) throws SQLScannerException {
 		if (!match(token)) {
-			throw new SQLScannerException("The token(" + token.getPattern() + ") is required.");
+			throw new SQLScannerException("The token(" + token.getPattern() + ") is required.\n" + getFailInfo());
 		}
 		return next();
 	}

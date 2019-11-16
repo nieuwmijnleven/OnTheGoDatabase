@@ -17,7 +17,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import onthego.database.core.sqlprocessor.SQLProcessor;
-import onthego.database.core.sqlprocessor.SQLProcessorException;
 import onthego.database.core.sqlprocessor.SQLResult;
 import onthego.database.core.sqlprocessor.expression.Expression;
 import onthego.database.core.sqlprocessor.expression.ExpressionEvaluationException;
@@ -55,7 +54,7 @@ public class DatabaseTest {
 	}
 	
 	@Test
-	public void testCreateTable() throws SQLProcessorException, IOException {
+	public void testCreateTable() throws DatabaseException, IOException {
 		SQLResult result = createTable();
 		
 		Table table = StandardTable.load(databasePath.toString(), result.getTable());
@@ -81,7 +80,7 @@ public class DatabaseTest {
 		assertEquals(3, column.getType().getDecimalLength());
 	}
 
-	private SQLResult createTable() throws SQLProcessorException {
+	private SQLResult createTable() throws DatabaseException {
 		String sql = "create table product("
 				+ "serial_no integer(10),"
 				+ "name char(30),"
@@ -98,7 +97,7 @@ public class DatabaseTest {
 	}
 	
 	@Test
-	public void testDropTable() throws IOException, SQLProcessorException {
+	public void testDropTable() throws IOException, DatabaseException {
 		createTable();
 		
 		database.dropTable(tableName);
@@ -106,7 +105,7 @@ public class DatabaseTest {
 	}
 
 	@Test
-	public void testBegin() {
+	public void testBegin() throws DatabaseException {
 		database.begin();
 		database.commit();
 		
@@ -129,7 +128,7 @@ public class DatabaseTest {
 	}
 
 	@Test
-	public void testCommit() throws SQLProcessorException {
+	public void testCommit() throws DatabaseException {
 		createTable();
 		
 		database.begin();
@@ -170,7 +169,7 @@ public class DatabaseTest {
 	}
 
 	@Test
-	public void testRollback() throws SQLProcessorException {
+	public void testRollback() throws DatabaseException {
 		createTable();
 		
 		database.begin();
@@ -206,7 +205,7 @@ public class DatabaseTest {
 	}
 
 	@Test
-	public void testSelectWithSpecificColumns() throws SQLProcessorException {
+	public void testSelectWithSpecificColumns() throws DatabaseException {
 		createTable();
 		insertRecord();
 		
@@ -232,7 +231,7 @@ public class DatabaseTest {
 	}
 	
 	@Test
-	public void testSelectWithAllColumns() throws SQLProcessorException {
+	public void testSelectWithAllColumns() throws DatabaseException {
 		createTable();
 		insertRecord();
 		
@@ -257,7 +256,7 @@ public class DatabaseTest {
 		assertEquals("200.1", it.next());
 	}
 
-	private SQLResult insertRecord() throws SQLProcessorException {
+	private SQLResult insertRecord() throws DatabaseException {
 		String sql = "insert into product(serial_no, name, price) "
 				   + "values(100, 'smartphone', 200.1)";
 		
@@ -269,7 +268,7 @@ public class DatabaseTest {
 	}
 
 	@Test
-	public void testInsertWithSpecificColumns() throws SQLProcessorException, ExpressionEvaluationException, IOException {
+	public void testInsertWithSpecificColumns() throws DatabaseException {
 		createTable();
 		SQLResult result = insertRecord();
 		
@@ -286,7 +285,7 @@ public class DatabaseTest {
 	}
 	
 	@Test
-	public void testInsertWithAllColumns() throws SQLProcessorException, ExpressionEvaluationException {
+	public void testInsertWithAllColumns() throws DatabaseException {
 		createTable();
 		
 		String sql = "insert into product "
@@ -310,7 +309,7 @@ public class DatabaseTest {
 	}
 
 	@Test
-	public void testUpdate() throws SQLProcessorException {
+	public void testUpdate() throws DatabaseException {
 		createTable();
 		insertRecord();
 		
@@ -345,7 +344,7 @@ public class DatabaseTest {
 	}
 
 	@Test
-	public void testDelete() throws SQLProcessorException {
+	public void testDelete() throws DatabaseException {
 		createTable();
 		insertRecord();
 		
@@ -373,7 +372,7 @@ public class DatabaseTest {
 	}
 
 	@Test
-	public void testExecute() {
+	public void testExecute() throws DatabaseException {
 		String query = "create table product("
 					+ "serial_no integer(10),"
 					+ "name char(30),"

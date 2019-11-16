@@ -7,7 +7,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 
-import onthego.database.core.exception.MarginalPayloadSpaceException;
+import onthego.database.core.exception.InsufficientPayloadSpaceException;
 import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.table.meta.TypeConstants;
 import onthego.database.core.table.meta.Types;
@@ -524,10 +524,10 @@ public class SingleTablespaceManager implements TablespaceManager {
 		}
 	}
 	
-	public void writeBlock(long blockPos, byte[] payload) throws MarginalPayloadSpaceException {
+	public void writeBlock(long blockPos, byte[] payload) throws InsufficientPayloadSpaceException {
 		int size = getBlockSize(blockPos) - BLOCK_OVERHEAD_SIZE;
 		if (size < payload.length) {
-			throw new MarginalPayloadSpaceException("The size(" + payload.length + ") of the payload to be written is larger than that(" +  size + ") of the target block.");
+			throw new InsufficientPayloadSpaceException("The size(" + payload.length + ") of the payload to be written is larger than that(" +  size + ") of the target block.");
 		}
 		
 		try {

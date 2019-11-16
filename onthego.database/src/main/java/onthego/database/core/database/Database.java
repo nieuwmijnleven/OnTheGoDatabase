@@ -128,7 +128,7 @@ public final class Database {
 		++transactionLevel;
 	}
 	
-	public void commit() {
+	public void commit() throws DatabaseException {
 		if (transactionLevel <= 0) {
 			throw new DatabaseException("There is no transaction.");
 		}
@@ -139,7 +139,7 @@ public final class Database {
 		--transactionLevel;
 	}
 	
-	public void rollback() {
+	public void rollback() throws DatabaseException {
 		if (transactionLevel <= 0) {
 			throw new DatabaseException("There is no transaction.");
 		}
@@ -158,13 +158,9 @@ public final class Database {
 		Table table = tables.get(tableName);
 		Table resultTable = table.select(mapToRealTableColumn(columns, table), new DefaultFilter() {
 			@Override
-			public boolean filter(Cursor[] cursor) {
-				try {
-					BooleanValue result = (BooleanValue)where.evaluate(cursor);
-					return result.getValue();
-				} catch(ExpressionEvaluationException e) {
-					throw new DatabaseException(e);
-				}
+			public boolean filter(Cursor[] cursor) throws DatabaseException {
+				BooleanValue result = (BooleanValue)where.evaluate(cursor);
+				return result.getValue();
 			}
 		});
 		return resultTable;
@@ -179,7 +175,7 @@ public final class Database {
 		return cursors;
 	}
 	
-	public int insert(String tableName, final List<ColumnMeta> columns, List<Expression> values) {
+	public int insert(String tableName, final List<ColumnMeta> columns, List<Expression> values) throws DatabaseException {
 		if (!tables.containsKey(tableName)) {
 			throw new DatabaseException(tableName + " table is not in the database.");
 		}
@@ -208,14 +204,10 @@ public final class Database {
 		return tableColumns;
 	}
 
-	private Map<ColumnMeta, String> createRecordDataMap(List<ColumnMeta> tableColumns, List<Expression> values, Cursor cursor) {
+	private Map<ColumnMeta, String> createRecordDataMap(List<ColumnMeta> tableColumns, List<Expression> values, Cursor cursor) throws DatabaseException {
 		Map<ColumnMeta,String> newRecord = new HashMap<>();
-		try {
-			for (int i = 0; i < tableColumns.size(); ++i) {
-				newRecord.put(tableColumns.get(i), Value.evaluate(values.get(i), new Cursor[]{cursor}));
-			}
-		} catch(ExpressionEvaluationException e) {
-			throw new DatabaseException("Fail to evaluate expressions.");
+		for (int i = 0; i < tableColumns.size(); ++i) {
+			newRecord.put(tableColumns.get(i), Value.evaluate(values.get(i), new Cursor[]{cursor}));
 		}
 		return newRecord;
 	}
@@ -233,23 +225,15 @@ public final class Database {
 		
 		affectedRowCount = table.update(new DefaultFilter() {
 			@Override
-			public boolean filter(Cursor[] cursor) {
-				try {
-					BooleanValue result = (BooleanValue)where.evaluate(cursor);
-					return result.getValue();
-				} catch(ExpressionEvaluationException e) {
-					throw new DatabaseException(e);
-				}
+			public boolean filter(Cursor[] cursor) throws DatabaseException {
+				BooleanValue result = (BooleanValue)where.evaluate(cursor);
+				return result.getValue();
 			}
 
 			@Override
-			public void update(Cursor cursor) {
-				try {
-//					cursor.update(columns.get(0).getName(), values.get(0).evaluate(new Cursor[]{cursor}).toString());
-					cursor.update(columns.get(0).getName(), Value.evaluate(values.get(0), new Cursor[]{cursor}));
-				} catch (ExpressionEvaluationException e) {
-					throw new DatabaseException(e);
-				}
+			public void update(Cursor cursor) throws DatabaseException {
+				cursor.update(columns.get(0).getName(), 
+							  Value.evaluate(values.get(0), new Cursor[]{cursor}));
 			}
 		});
 		
@@ -264,28 +248,19 @@ public final class Database {
 		Table table = tables.get(tableName);
 		affectedRowCount = table.delete(new Filtration.DefaultFilter() {
 			@Override
-			public boolean filter(Cursor[] cursor) {
-				try {
-					BooleanValue result = (BooleanValue)where.evaluate(cursor);
-					return result.getValue();
-				} catch(ExpressionEvaluationException e) {
-					throw new DatabaseException(e);
-				}
+			public boolean filter(Cursor[] cursor) throws DatabaseException {
+				BooleanValue result = (BooleanValue)where.evaluate(cursor);
+				return result.getValue();
 			}
 		});
 		
 		return affectedRowCount;
 	} 
 	
-	public Table execute(String query) {
+	public Table execute(String query) throws DatabaseException {
 		SQLProcessor processor = new SQLProcessor(query);
-		SQLResult result;
-		try {
-			result = processor.process();
-		} catch (SQLProcessorException e) {
-			throw new DatabaseException(e);
-		}
-		
+		SQLResult result = processor.process();
+
 		switch(result.getCommand()) {
 		case CREATE_DATABASE:
 			doCreateDatabase(result);
@@ -326,35 +301,35 @@ public final class Database {
 		return null;
 	}
 
-	private void doDelete(SQLResult result) {
+	private void doDelete(SQLResult result) throws DatabaseException {
 		affectedRowCount = delete(result.getTable(), result.getWhere());
 	}
 
-	private void doUpdate(SQLResult result) {
+	private void doUpdate(SQLResult result) throws DatabaseException {
 		affectedRowCount = update(result.getTable(), result.getColumns(), result.getValues(), result.getWhere());
 	}
 
-	private void doInsert(SQLResult result) {
+	private void doInsert(SQLResult result) throws DatabaseException {
 		affectedRowCount = insert(result.getTable(), result.getColumns(), result.getValues());
 	}
 
-	private Table doSelect(SQLResult result) {
+	private Table doSelect(SQLResult result) throws DatabaseException {
 		return select(result.getTable(), result.getColumns(), result.getWhere());
 	}
 
-	private void doUseTable(SQLResult result) {
+	private void doUseTable(SQLResult result) throws DatabaseException {
 		open(Paths.get(result.getDatabase()));
 	}
 
-	private void doDropTable(SQLResult result) {
+	private void doDropTable(SQLResult result) throws DatabaseException {
 		dropTable(result.getTable());
 	}
 
-	private void doCreateTable(SQLResult result) {
+	private void doCreateTable(SQLResult result) throws DatabaseException {
 		createTable(result.getTable(), result.getColumns());
 	}
 
-	private void doCreateDatabase(SQLResult result) {
+	private void doCreateDatabase(SQLResult result) throws DatabaseException {
 		createDatabase(result.getDatabase());
 	}
 	

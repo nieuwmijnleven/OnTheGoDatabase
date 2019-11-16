@@ -4,13 +4,18 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import onthego.database.core.database.Database;
+import onthego.database.core.database.DatabaseException;
 
 public class JDBCConnection extends ConnectionAdapter {
 	
 	private Database database;
 	
-	public JDBCConnection(String url) {
-		this.database = new Database(url);
+	public JDBCConnection(String url) throws SQLException {
+		try {
+			this.database = new Database(url);
+		} catch (DatabaseException e) {
+			throw new SQLException(e.getMessage());
+		}
 	}
 
 	@Override
@@ -72,25 +77,43 @@ public class JDBCConnection extends ConnectionAdapter {
 	private AutoCommitState disabled = new AutoCommitState() {
 		@Override
 		public void rollback() throws SQLException {
-			database.rollback();
+			try {
+				database.rollback();
+			} catch (DatabaseException e) {
+				throw new SQLException(e.getMessage());
+			}
+			
 			database.begin();
 		}
 
 		@Override
 		public void commit() throws SQLException {
-			database.commit();
+			try {
+				database.commit();
+			} catch (DatabaseException e) {
+				throw new SQLException(e.getMessage());
+			}
+			
 			database.begin();
 		}
 
 		@Override
 		public void close() throws SQLException {
-			database.commit();
+			try {
+				database.commit();
+			} catch (DatabaseException e) {
+				throw new SQLException(e.getMessage());
+			}
 		}
 
 		@Override
 		public void setAutoCommit(boolean autoCommit) throws SQLException {
 			if (autoCommit == true) {
-				database.commit();
+				try {
+					database.commit();
+				} catch (DatabaseException e) {
+					throw new SQLException(e.getMessage());
+				}
 				autoCommitState = enabled;
 			}
 		}

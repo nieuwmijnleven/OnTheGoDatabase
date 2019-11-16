@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import onthego.database.core.database.Database;
+import onthego.database.core.database.DatabaseException;
 import onthego.database.core.table.Table;
 
 public class JDBCStatement extends StatementAdapter {
@@ -16,13 +17,22 @@ public class JDBCStatement extends StatementAdapter {
 
 	@Override
 	public ResultSet executeQuery(String sql) throws SQLException {
-		Table resultTable = database.execute(sql);
+		Table resultTable;
+		try {
+			resultTable = database.execute(sql);
+		} catch (DatabaseException e) {
+			throw new SQLException(e.getMessage());
+		}
 		return new JDBCResultSet(resultTable.getCursor());
 	}
 
 	@Override
 	public int executeUpdate(String sql) throws SQLException {
-		database.execute(sql);
+		try {
+			database.execute(sql);
+		} catch (DatabaseException e) {
+			throw new SQLException(e.getMessage());
+		}
 		return database.getAffectedRowCount();
 	}
 }

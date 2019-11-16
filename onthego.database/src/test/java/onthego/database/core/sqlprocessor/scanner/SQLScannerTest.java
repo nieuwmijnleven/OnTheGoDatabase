@@ -104,7 +104,7 @@ public class SQLScannerTest {
 		try {
 			scanner.next(TokenManager.getToken("SELECT"));
 		} catch (SQLScannerException se) {
-			assertEquals(se.getMessage(), "The token(select) is required.");
+			assertEquals(se.getMessage(), "The token(select) is required.\n" + scanner.getFailInfo());
 			assertEquals("table", scanner.next(TokenManager.getToken("FROM")).lexeme());
 		}
 		

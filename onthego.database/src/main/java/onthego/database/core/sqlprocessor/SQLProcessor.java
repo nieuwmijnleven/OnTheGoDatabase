@@ -89,7 +89,7 @@ public class SQLProcessor {
 			scanner.next();
 			return doProcess();
 		} catch (SQLProcessorException e) {
-			throw new SQLProcessorException(e);
+			throw new SQLProcessorException(e.getMessage());
 		}
 	}
 
