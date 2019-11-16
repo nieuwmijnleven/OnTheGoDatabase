@@ -8,10 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import onthego.database.core.exception.MarginalPayloadSpaceException;
-import onthego.database.core.index.BTreeIndex;
-import onthego.database.core.table.meta.ColumnType;
-import onthego.database.core.table.meta.Type;
+import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.table.meta.TypeConstants;
+import onthego.database.core.table.meta.Types;
 import onthego.database.core.tablespace.meta.SingleTablespaceHeader;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
 import onthego.database.core.tablespace.meta.TablespaceHeader;
@@ -130,7 +129,7 @@ public class SingleTablespaceManager implements TablespaceManager {
 			
 			out.writeUTF(tableMetaInfo.getTableName());  //<tableName>
 			out.writeInt(tableMetaInfo.getColumnList().size());  //<column_count>
-			for (ColumnType column : tableMetaInfo.getColumnList()) {   //<column_meta_info>
+			for (ColumnMeta column : tableMetaInfo.getColumnList()) {   //<column_meta_info>
 				out.writeUTF(column.getName());  //<column_name>
 				out.writeUTF(column.getType().getTypeConstant().toString());  //<column_type>
 				out.writeInt(column.getType().getLength());  //<column_type_length>
@@ -156,14 +155,14 @@ public class SingleTablespaceManager implements TablespaceManager {
 			
 			String tableName = io.readUTF();
 			int columnCount = io.readInt();
-			List<ColumnType> columnList = new ArrayList<>();
+			List<ColumnMeta> columnList = new ArrayList<>();
 			for (int i = 0; i < columnCount; ++i) { 
 				String name = io.readUTF();
 				TypeConstants typeConstants = TypeConstants.valueOf(io.readUTF());
 				int length = io.readInt();
 				int decimalLength = io.readInt();
 				
-				columnList.add(new ColumnType(name, Type.of(typeConstants, length, decimalLength)));
+				columnList.add(new ColumnMeta(name, Types.of(typeConstants, length, decimalLength)));
 			}
 			
 			tsHeader.setTableMetaInfo(new TableMetaInfo(tableName, columnList));

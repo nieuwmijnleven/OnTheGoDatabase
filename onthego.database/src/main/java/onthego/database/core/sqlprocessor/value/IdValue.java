@@ -3,7 +3,7 @@ package onthego.database.core.sqlprocessor.value;
 import java.text.ParseException;
 
 import onthego.database.core.table.Cursor;
-import onthego.database.core.table.meta.ColumnType;
+import onthego.database.core.table.meta.ColumnMeta;
 
 public final class IdValue extends Value {
 	
@@ -20,7 +20,7 @@ public final class IdValue extends Value {
 	public Value getValue(Cursor[] tables) throws ParseException {
 		Cursor selectCursor = null;
 		String columnValue = null; 
-		ColumnType columnType = null;
+		ColumnMeta columnType = null;
 		
 		if (tableName == null) {
 			selectCursor = tables[0];

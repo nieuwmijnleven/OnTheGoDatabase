@@ -22,7 +22,7 @@ import onthego.database.core.table.Filtration;
 import onthego.database.core.table.Filtration.DefaultFilter;
 import onthego.database.core.table.StandardTable;
 import onthego.database.core.table.Table;
-import onthego.database.core.table.meta.ColumnType;
+import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
 
 public final class Database {
@@ -83,7 +83,7 @@ public final class Database {
 		}
 	}
 	
-	public void createTable(String tableName, List<ColumnType> columns) throws DatabaseException {
+	public void createTable(String tableName, List<ColumnMeta> columns) throws DatabaseException {
 		try {
 			TableMetaInfo tableMetaInfo = new TableMetaInfo(tableName, columns);
 			Table table = StandardTable.create(location.toString(), tableName, tableMetaInfo);
@@ -150,7 +150,7 @@ public final class Database {
 		--transactionLevel;
 	}
 	
-	public Table select(String tableName, List<ColumnType> columns, Expression where) throws DatabaseException {
+	public Table select(String tableName, List<ColumnMeta> columns, Expression where) throws DatabaseException {
 		if (!tables.containsKey(tableName)) {
 			throw new DatabaseException(tableName + " table is not in the database.");
 		}
@@ -179,14 +179,14 @@ public final class Database {
 		return cursors;
 	}
 	
-	public int insert(String tableName, final List<ColumnType> columns, List<Expression> values) {
+	public int insert(String tableName, final List<ColumnMeta> columns, List<Expression> values) {
 		if (!tables.containsKey(tableName)) {
 			throw new DatabaseException(tableName + " table is not in the database.");
 		}
 		
 		Table table = tables.get(tableName);
 		
-		List<ColumnType> tableColumns = new ArrayList<>();
+		List<ColumnMeta> tableColumns = new ArrayList<>();
 		if (columns.size() == 0 && values.size() == table.getColumnCount()) { //in case of selecting all columns such as "select * from table"
 			tableColumns = table.getColumnList();
 		} else if (columns.size() != values.size()) {
@@ -199,8 +199,8 @@ public final class Database {
 		return (affectedRowCount = 1);
 	}
 
-	private List<ColumnType> mapToRealTableColumn(final List<ColumnType> columns, Table table) {
-		List<ColumnType> tableColumns;
+	private List<ColumnMeta> mapToRealTableColumn(final List<ColumnMeta> columns, Table table) {
+		List<ColumnMeta> tableColumns;
 		tableColumns = table.getColumnList().stream()
 					.filter(tableColumn -> columns.stream()
 							.anyMatch(selectColumn -> tableColumn.getName().equalsIgnoreCase(selectColumn.getName())))
@@ -208,8 +208,8 @@ public final class Database {
 		return tableColumns;
 	}
 
-	private Map<ColumnType, String> createRecordDataMap(List<ColumnType> tableColumns, List<Expression> values, Cursor cursor) {
-		Map<ColumnType,String> newRecord = new HashMap<>();
+	private Map<ColumnMeta, String> createRecordDataMap(List<ColumnMeta> tableColumns, List<Expression> values, Cursor cursor) {
+		Map<ColumnMeta,String> newRecord = new HashMap<>();
 		try {
 			for (int i = 0; i < tableColumns.size(); ++i) {
 				newRecord.put(tableColumns.get(i), Value.evaluate(values.get(i), new Cursor[]{cursor}));
@@ -220,7 +220,7 @@ public final class Database {
 		return newRecord;
 	}
 
-	public int update(String tableName, List<ColumnType> columns, List<Expression> values, Expression where) throws DatabaseException {
+	public int update(String tableName, List<ColumnMeta> columns, List<Expression> values, Expression where) throws DatabaseException {
 		if (!tables.containsKey(tableName)) {
 			throw new DatabaseException(tableName + " table is not in the database.");
 		}

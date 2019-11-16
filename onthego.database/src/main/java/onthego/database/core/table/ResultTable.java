@@ -9,14 +9,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import onthego.database.core.table.meta.ColumnType;
+import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 
 public final class ResultTable implements Table {
 	
 	private final String tableName;
 	
-	private final List<ColumnType> columnTypeList;
+	private final List<ColumnMeta> columnTypeList;
 	
 	private final List<Integer> columnRealIndexList;
 	
@@ -24,7 +24,7 @@ public final class ResultTable implements Table {
 	
 	private final List<byte[]> records;
 	
-	public ResultTable(String tableName, List<ColumnType> columnList, List<Integer> columnRealIndexList, List<byte[]> records) {
+	public ResultTable(String tableName, List<ColumnMeta> columnList, List<Integer> columnRealIndexList, List<byte[]> records) {
 		this.tableName = tableName;
 		this.columnTypeList = columnList;
 		this.records = records;
@@ -35,7 +35,7 @@ public final class ResultTable implements Table {
 
 	private void initColumnTypeIndexMap() {
 		for (int i = 0; i < this.columnTypeList.size(); ++i) {
-			ColumnType column = this.columnTypeList.get(i);
+			ColumnMeta column = this.columnTypeList.get(i);
 			this.columnTypeIndexMap.put(column.getName(), columnRealIndexList.get(i));
 		}
 	}
@@ -59,16 +59,16 @@ public final class ResultTable implements Table {
 	}
 	
 	@Override
-	public Table select(List<ColumnType> selectColumn, Filtration filtration) {
+	public Table select(List<ColumnMeta> selectColumn, Filtration filtration) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public long insert(Map<ColumnType, String> values) {
+	public long insert(Map<ColumnMeta, String> values) {
 		throw new UnsupportedOperationException();
 	}
 	
-	public Cursor getCursor(List<ColumnType> selectColumn) {
+	public Cursor getCursor(List<ColumnMeta> selectColumn) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -102,7 +102,7 @@ public final class ResultTable implements Table {
 	}
 
 	@Override
-	public List<ColumnType> getColumnList() {
+	public List<ColumnMeta> getColumnList() {
 		return Collections.unmodifiableList(this.columnTypeList);
 	}
 
@@ -137,7 +137,7 @@ public final class ResultTable implements Table {
 		}
 		
 		@Override
-		public ColumnType getColumnType(int columnIdx) {
+		public ColumnMeta getColumnType(int columnIdx) {
 			if (!isValidColumnIndex(columnIdx)) {
 				throw new IllegalArgumentException(columnIdx + " is not a valid column index.");
 			}
@@ -145,7 +145,7 @@ public final class ResultTable implements Table {
 		}
 		
 		@Override
-		public ColumnType getColumnType(String columnName) {
+		public ColumnMeta getColumnType(String columnName) {
 			if (!isValidColumnName(columnName)) {
 				throw new IllegalArgumentException(columnName + " is not a valid column name");
 			}

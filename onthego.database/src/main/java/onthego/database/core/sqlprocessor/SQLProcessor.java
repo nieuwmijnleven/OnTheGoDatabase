@@ -6,11 +6,12 @@ import java.util.List;
 
 import onthego.database.core.sqlprocessor.expression.Expression;
 import onthego.database.core.sqlprocessor.scanner.TokenManager;
-import onthego.database.core.table.meta.CharType;
-import onthego.database.core.table.meta.ColumnType;
+import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.table.meta.IntegerType;
 import onthego.database.core.table.meta.NullType;
 import onthego.database.core.table.meta.NumericType;
+import onthego.database.core.table.meta.TypeConstants;
+import onthego.database.core.table.meta.Types;
 import onthego.database.core.table.meta.VarcharType;
 
 /*
@@ -117,7 +118,7 @@ public class SQLProcessor {
 				scanner.next();
 				
 				scanner.next(TokenManager.getToken("LP"));
-				List<ColumnType> columns = columnTypeList(); 
+				List<ColumnMeta> columns = columnTypeList(); 
 				scanner.next(TokenManager.getToken("RP"));
 				
 //				return new SQLResult(SQLResult.CommandType.CREATE_TABLE, table, columns);
@@ -175,7 +176,7 @@ public class SQLProcessor {
 		} else if (scanner.match(TokenManager.getToken("SELECT"))) {
 			scanner.next();
 			
-			List<ColumnType> columns = columnList();
+			List<ColumnMeta> columns = columnList();
 			
 			scanner.next(TokenManager.getToken("FROM"));
 			String table = scanner.getCurrentLexeme();
@@ -201,7 +202,7 @@ public class SQLProcessor {
 			String table = scanner.getCurrentLexeme();
 			scanner.next();
 			
-			List<ColumnType> columns = new ArrayList<>();
+			List<ColumnMeta> columns = new ArrayList<>();
 			if (scanner.match(TokenManager.getToken("LP"))) {
 				scanner.next();
 				columns = columnList(); 
@@ -234,7 +235,7 @@ public class SQLProcessor {
 			if (!scanner.match(TokenManager.getToken("IDENTIFIER"))) {
 				throw new SQLProcessorException("A column name is required.");
 			}
-			ColumnType column = new ColumnType(scanner.getCurrentLexeme(), new NullType());
+			ColumnMeta column = new ColumnMeta(scanner.getCurrentLexeme(), new NullType());
 			scanner.next();	
 			
 			scanner.next(TokenManager.getToken("EQUAL"));
@@ -300,15 +301,15 @@ public class SQLProcessor {
 		return expressions;
 	}
 
-	private List<ColumnType> columnList() throws SQLScannerException {
+	private List<ColumnMeta> columnList() throws SQLScannerException {
 		if (scanner.match(TokenManager.getToken("STAR"))) {
 			scanner.next();
 			return Collections.emptyList();
 		}
 		
-		List<ColumnType> columns = new ArrayList<>();
+		List<ColumnMeta> columns = new ArrayList<>();
 		while (scanner.match(TokenManager.getToken("IDENTIFIER"))) {
-			columns.add(new ColumnType(scanner.getCurrentLexeme(), new NullType()));
+			columns.add(new ColumnMeta(scanner.getCurrentLexeme(), new NullType()));
 			scanner.next();
 			
 			if (!scanner.match(TokenManager.getToken("COMMA"))) {
@@ -319,14 +320,14 @@ public class SQLProcessor {
 		return columns;
 	}
 
-	private List<ColumnType> columnTypeList() throws SQLProcessorException {
-		List<ColumnType> columnTypeList = new ArrayList<>();
+	private List<ColumnMeta> columnTypeList() throws SQLProcessorException {
+		List<ColumnMeta> columnTypeList = new ArrayList<>();
 		
 		while (true) {
 			if (!scanner.match(TokenManager.getToken("IDENTIFIER"))) {
 				throw new SQLProcessorException("A column name is required.");
 			}
-			ColumnType columnType = new ColumnType(scanner.getCurrentLexeme());
+			ColumnMeta columnType = new ColumnMeta(scanner.getCurrentLexeme());
 			scanner.next();
 			
 			if (scanner.match(TokenManager.getToken("CHAR"))) {
@@ -336,7 +337,8 @@ public class SQLProcessor {
 				if (!scanner.match(TokenManager.getToken("NUMBER"))) {
 					throw new SQLProcessorException("A number is required.");
 				}
-				columnType.setType(new CharType(Integer.parseInt(scanner.getCurrentLexeme())));
+				columnType.setType(Types.of(TypeConstants.CHAR, Integer.parseInt(scanner.getCurrentLexeme()), 0));
+				//columnType.setType(new CharType(Integer.parseInt(scanner.getCurrentLexeme())));
 				scanner.next();
 				
 				scanner.next(TokenManager.getToken("RP"));
@@ -347,7 +349,8 @@ public class SQLProcessor {
 				if (!scanner.match(TokenManager.getToken("NUMBER"))) {
 					throw new SQLProcessorException("A number is required.");
 				}
-				columnType.setType(new VarcharType(Integer.parseInt(scanner.getCurrentLexeme())));
+				columnType.setType(Types.of(TypeConstants.VARCHAR, Integer.parseInt(scanner.getCurrentLexeme()), 0));
+				//columnType.setType(new VarcharType(Integer.parseInt(scanner.getCurrentLexeme())));
 				scanner.next();
 				
 				scanner.next(TokenManager.getToken("RP"));
@@ -358,7 +361,8 @@ public class SQLProcessor {
 				if (!scanner.match(TokenManager.getToken("NUMBER"))) {
 					throw new SQLProcessorException("A number is required.");
 				}
-				columnType.setType(new IntegerType(Integer.parseInt(scanner.getCurrentLexeme())));
+				columnType.setType(Types.of(TypeConstants.INTEGER, Integer.parseInt(scanner.getCurrentLexeme()), 0));
+				//columnType.setType(new IntegerType(Integer.parseInt(scanner.getCurrentLexeme())));
 				scanner.next();
 				
 				scanner.next(TokenManager.getToken("RP"));
@@ -380,7 +384,8 @@ public class SQLProcessor {
 				int decimal = Integer.parseInt(scanner.getCurrentLexeme());
 				scanner.next();
 				
-				columnType.setType(new NumericType(integer, decimal));
+				columnType.setType(Types.of(TypeConstants.NUMERIC, integer, decimal));
+				//columnType.setType(new NumericType(integer, decimal));
 				scanner.next(TokenManager.getToken("RP"));
 			} else {
 				throw new SQLProcessorException(scanner.getCurrentLexeme() + " is not a valid type.");

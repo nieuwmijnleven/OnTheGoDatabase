@@ -13,9 +13,4 @@ public class NullType extends Type {
 	protected String generateValuePatternString(int length, int decimalLength) {
 		return "";
 	}
-//	
-//	@Override
-//	public void sendDataWriteRequest(DataOutput out, Object value) throws IOException {
-//		throw new UnsupportedOperationException();
-//	}
 }

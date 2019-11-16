@@ -23,9 +23,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import onthego.database.core.exception.MarginalPayloadSpaceException;
-import onthego.database.core.table.meta.ColumnType;
-import onthego.database.core.table.meta.Type;
+import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.table.meta.TypeConstants;
+import onthego.database.core.table.meta.Types;
 import onthego.database.core.tablespace.manager.SingleTablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManagerException;
@@ -79,11 +79,11 @@ public class SingleTablespaceManagerTest {
 	private TableMetaInfo generateTableMetaInfo() {
 		String tableName = "product";
 		
-		List<ColumnType> columnList = new ArrayList<>();
-		columnList.add(new ColumnType("serial_no", Type.of(TypeConstants.INTEGER, 10, 0)));
-		columnList.add(new ColumnType("name", Type.of(TypeConstants.CHAR, 20, 0)));
-		columnList.add(new ColumnType("price", Type.of(TypeConstants.NUMERIC, 10, 3)));
-		columnList.add(new ColumnType("on_sale", Type.of(TypeConstants.BOOL, 0, 0)));
+		List<ColumnMeta> columnList = new ArrayList<>();
+		columnList.add(new ColumnMeta("serial_no", Types.of(TypeConstants.INTEGER, 10, 0)));
+		columnList.add(new ColumnMeta("name", Types.of(TypeConstants.CHAR, 20, 0)));
+		columnList.add(new ColumnMeta("price", Types.of(TypeConstants.NUMERIC, 10, 3)));
+		columnList.add(new ColumnMeta("on_sale", Types.of(TypeConstants.BOOL, 0, 0)));
 		
 		TableMetaInfo tableMetaInfo = new TableMetaInfo(tableName, columnList);
 		tsManager.createTableInfoEntry(tableMetaInfo);
@@ -139,7 +139,7 @@ public class SingleTablespaceManagerTest {
 			assertEquals(tableMetaInfo.getColumnList().size(), io.readInt());
 			
 			for (int i = 0; i < tableMetaInfo.getColumnList().size(); ++i) {
-				ColumnType column = tableMetaInfo.getColumnList().get(i);
+				ColumnMeta column = tableMetaInfo.getColumnList().get(i);
 				assertEquals(column.getName(), io.readUTF());
 				assertEquals(column.getType().getTypeConstant(), TypeConstants.valueOf(io.readUTF()));
 				assertEquals(column.getType().getLength(), io.readInt());

@@ -2,7 +2,7 @@ package onthego.database.core.table;
 
 import java.util.Iterator;
 
-import onthego.database.core.table.meta.ColumnType;
+import onthego.database.core.table.meta.ColumnMeta;
 
 public interface Cursor {
 
@@ -16,9 +16,9 @@ public interface Cursor {
 	
 	String getColumn(String columnName);
 	
-	ColumnType getColumnType(int columnIdx);
+	ColumnMeta getColumnType(int columnIdx);
 	
-	ColumnType getColumnType(String columnName);
+	ColumnMeta getColumnType(String columnName);
 	
 	byte[] getRawRecord();
 	

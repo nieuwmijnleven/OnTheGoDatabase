@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.List;
 
 import onthego.database.core.sqlprocessor.expression.Expression;
-import onthego.database.core.table.meta.ColumnType;
+import onthego.database.core.table.meta.ColumnMeta;
 
 public class SQLResult {
 	
@@ -16,7 +16,7 @@ public class SQLResult {
 	
 	private String table;
 	
-	private List<ColumnType> columns;
+	private List<ColumnMeta> columns;
 	
 	private List<Expression> values;
 	
@@ -30,7 +30,7 @@ public class SQLResult {
 		
 		private String table;
 		
-		private List<ColumnType> columns = Collections.emptyList();
+		private List<ColumnMeta> columns = Collections.emptyList();
 		
 		private List<Expression> values = Collections.emptyList();
 		
@@ -53,7 +53,7 @@ public class SQLResult {
 			return this;
 		}
 
-		public SQLResultBuilder columns(List<ColumnType> columns) {
+		public SQLResultBuilder columns(List<ColumnMeta> columns) {
 			this.columns = columns;
 			return this;
 		}
@@ -98,7 +98,7 @@ public class SQLResult {
 		return table;
 	}
 
-	public List<ColumnType> getColumns() {
+	public List<ColumnMeta> getColumns() {
 		return columns;
 	}
 	

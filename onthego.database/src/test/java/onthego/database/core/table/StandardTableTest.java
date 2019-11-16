@@ -18,9 +18,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import onthego.database.core.table.meta.ColumnType;
+import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.table.meta.Type;
 import onthego.database.core.table.meta.TypeConstants;
+import onthego.database.core.table.meta.Types;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
 
 public class StandardTableTest {
@@ -32,8 +33,8 @@ public class StandardTableTest {
 		TableMetaInfo tableMetaInfo = generateTableMetaInfo();
 		table = StandardTable.create(".", "test", tableMetaInfo);
 		
-		List<ColumnType> columnList = tableMetaInfo.getColumnList();
-		Map<ColumnType,String> values = Map.of(columnList.get(0), "100", columnList.get(1), "smartphone", columnList.get(2), "123.4", columnList.get(3), "true");
+		List<ColumnMeta> columnList = tableMetaInfo.getColumnList();
+		Map<ColumnMeta,String> values = Map.of(columnList.get(0), "100", columnList.get(1), "smartphone", columnList.get(2), "123.4", columnList.get(3), "true");
 		
 		table.insert(values);
 	}
@@ -49,11 +50,11 @@ public class StandardTableTest {
 	private TableMetaInfo generateTableMetaInfo() {
 		String tableName = "product";
 		
-		List<ColumnType> columnList = new ArrayList<>();
-		columnList.add(new ColumnType("serial_no", Type.of(TypeConstants.INTEGER, 10, 0)));
-		columnList.add(new ColumnType("name", Type.of(TypeConstants.CHAR, 20, 0)));
-		columnList.add(new ColumnType("price", Type.of(TypeConstants.NUMERIC, 10, 3)));
-		columnList.add(new ColumnType("on_sale", Type.of(TypeConstants.BOOL, 0, 0)));
+		List<ColumnMeta> columnList = new ArrayList<>();
+		columnList.add(new ColumnMeta("serial_no", Types.of(TypeConstants.INTEGER, 10, 0)));
+		columnList.add(new ColumnMeta("name", Types.of(TypeConstants.CHAR, 20, 0)));
+		columnList.add(new ColumnMeta("price", Types.of(TypeConstants.NUMERIC, 10, 3)));
+		columnList.add(new ColumnMeta("on_sale", Types.of(TypeConstants.BOOL, 0, 0)));
 		
 		TableMetaInfo tableMetaInfo = new TableMetaInfo(tableName, columnList);
 		return tableMetaInfo;
@@ -61,11 +62,11 @@ public class StandardTableTest {
 	
 	@Test
 	public void testSelect() throws IOException {
-		List<ColumnType> selectColumns = new ArrayList<>();
-		selectColumns.add(new ColumnType("serial_no", Type.of(TypeConstants.INTEGER, 10, 0)));
-		selectColumns.add(new ColumnType("name", Type.of(TypeConstants.CHAR, 20, 0)));
-		//selectColumns.add(new ColumnType("price", Type.of(TypeConstants.NUMERIC, 10, 3)));
-		selectColumns.add(new ColumnType("on_sale", Type.of(TypeConstants.BOOL, 0, 0)));
+		List<ColumnMeta> selectColumns = new ArrayList<>();
+		selectColumns.add(new ColumnMeta("serial_no", Types.of(TypeConstants.INTEGER, 10, 0)));
+		selectColumns.add(new ColumnMeta("name", Types.of(TypeConstants.CHAR, 20, 0)));
+		//selectColumns.add(new ColumnType("price", Types.of(TypeConstants.NUMERIC, 10, 3)));
+		selectColumns.add(new ColumnMeta("on_sale", Types.of(TypeConstants.BOOL, 0, 0)));
 		
 		Table resultTable = table.select(selectColumns, new Filtration.DefaultFilter() {
 			@Override

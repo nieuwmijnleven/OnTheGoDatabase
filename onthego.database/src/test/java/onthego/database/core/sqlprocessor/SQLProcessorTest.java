@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import onthego.database.core.sqlprocessor.expression.Expression;
 import onthego.database.core.sqlprocessor.expression.ExpressionEvaluationException;
-import onthego.database.core.table.meta.ColumnType;
+import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.table.meta.TypeConstants;
 
 public class SQLProcessorTest {
@@ -50,10 +50,10 @@ public class SQLProcessorTest {
 		assertEquals(SQLResult.CommandType.CREATE_TABLE, result.getCommand());
 		assertEquals("product", result.getTable());
 		
-		List<ColumnType> columns = result.getColumns();
+		List<ColumnMeta> columns = result.getColumns();
 		assertEquals(3, columns.size());
 		
-		ColumnType column = columns.get(0);
+		ColumnMeta column = columns.get(0);
 		assertEquals("serial_no", column.getName());
 		assertEquals(TypeConstants.INTEGER, column.getType().getTypeConstant());
 		assertEquals(10, column.getType().getLength());
@@ -125,10 +125,10 @@ public class SQLProcessorTest {
 		assertEquals(SQLResult.CommandType.SELECT, result.getCommand());
 		assertEquals("product", result.getTable());
 		
-		List<ColumnType> columns = result.getColumns();
+		List<ColumnMeta> columns = result.getColumns();
 		assertEquals(3, columns.size());
 		
-		ColumnType column = columns.get(0);
+		ColumnMeta column = columns.get(0);
 		assertEquals("serial_no", column.getName());
 		column = columns.get(1);
 		assertEquals("name", column.getName());
@@ -152,7 +152,7 @@ public class SQLProcessorTest {
 		assertEquals(SQLResult.CommandType.SELECT, result.getCommand());
 		assertEquals("product", result.getTable());
 		
-		List<ColumnType> columns = result.getColumns();
+		List<ColumnMeta> columns = result.getColumns();
 		assertEquals(0, columns.size());
 		
 		assertNotEquals(Expression.NULL_EXPRESSION, result.getWhere());
@@ -169,10 +169,10 @@ public class SQLProcessorTest {
 		assertEquals(SQLResult.CommandType.INSERT, result.getCommand());
 		assertEquals("product", result.getTable());
 		
-		List<ColumnType> columns = result.getColumns();
+		List<ColumnMeta> columns = result.getColumns();
 		assertEquals(3, columns.size());
 		
-		ColumnType column = columns.get(0);
+		ColumnMeta column = columns.get(0);
 		assertEquals("serial_no", column.getName());
 		column = columns.get(1);
 		assertEquals("name", column.getName());
@@ -198,7 +198,7 @@ public class SQLProcessorTest {
 		assertEquals(SQLResult.CommandType.INSERT, result.getCommand());
 		assertEquals("product", result.getTable());
 		
-		List<ColumnType> columns = result.getColumns();
+		List<ColumnMeta> columns = result.getColumns();
 		assertEquals(0, columns.size());
 		
 		List<Expression> values = result.getValues();
@@ -220,10 +220,10 @@ public class SQLProcessorTest {
 		assertEquals(SQLResult.CommandType.UPDATE, result.getCommand());
 		assertEquals("product", result.getTable());
 		
-		List<ColumnType> columns = result.getColumns();
+		List<ColumnMeta> columns = result.getColumns();
 		assertEquals(1, columns.size());
 		
-		ColumnType column = columns.get(0);
+		ColumnMeta column = columns.get(0);
 		assertEquals("price", column.getName());
 		
 		List<Expression> values = result.getValues();

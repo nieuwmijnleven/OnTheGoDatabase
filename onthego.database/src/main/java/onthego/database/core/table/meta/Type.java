@@ -1,7 +1,5 @@
 package onthego.database.core.table.meta;
 
-import java.io.DataOutput;
-import java.io.IOException;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -14,26 +12,6 @@ public abstract class Type {
 	protected int decimalLength;
 	
 	protected Pattern pattern;
-	
-	public static Type of(TypeConstants typeConstants, int length, int decimalLength) {
-		if (typeConstants == TypeConstants.CHAR) {
-			return new CharType(length);
-		} else if (typeConstants == TypeConstants.VARCHAR) {
-			return new VarcharType(length);
-		} else if (typeConstants == TypeConstants.INTEGER) {
-			return new IntegerType(length);
-		} else if (typeConstants == TypeConstants.NUMERIC) {
-			return new NumericType(length, decimalLength);
-		} else if (typeConstants == TypeConstants.BOOL) {
-			return new BoolType();
-		} else if (typeConstants == TypeConstants.CONST) {
-			return new ConstType();
-		} else if (typeConstants == TypeConstants.NULL) {
-			return new NullType();
-		} else {
-			throw new TypeException("Could not create a type with a wrong TypeConstants's value.");
-		}
-	}
 	
 	protected Type(TypeConstants typeConstant) {
 		initialize(typeConstant, 0, 0);
@@ -53,11 +31,7 @@ public abstract class Type {
 		this.decimalLength = decimalLength;
 		generateValuePattern(length, decimalLength);
 	}
-	
-//	public abstract Object makeReadRequest(DataInput in) throws IOException; 
-//	
-//	public abstract void sendDataWriteRequest(DataOutput out, Object value) throws IOException; 
-	
+		
 	protected abstract String generateValuePatternString(int length, int decimalLength);
 	
 	private void generateValuePattern(int length, int decimalLength) {
@@ -70,7 +44,7 @@ public abstract class Type {
 	}
 	
 	public boolean verifyValue(String value) {
-		if (pattern == null || value == null || value.length() == 0) {
+		if (Objects.isNull(pattern) || Objects.isNull(value) || value.length() == 0) {
 			return false;
 		}
 		

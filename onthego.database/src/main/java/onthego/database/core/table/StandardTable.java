@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import onthego.database.core.index.BTreeIndex;
-import onthego.database.core.table.meta.ColumnType;
+import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.tablespace.manager.SingleTablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 import onthego.database.core.tablespace.meta.SingleTablespaceHeader;
@@ -31,7 +31,7 @@ public class StandardTable implements Table {
 	
 	private BTreeIndex<Long> clusteredIndex;
 	
-	private Map<ColumnType, BTreeIndex<String>> columnIndexMap;
+	private Map<ColumnMeta, BTreeIndex<String>> columnIndexMap;
 	
 	private Stack<List<Undo>> transactionStack;
 	
@@ -130,7 +130,7 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
-	public Table select(List<ColumnType> selectColumns, Filtration filtration) {
+	public Table select(List<ColumnMeta> selectColumns, Filtration filtration) {
 		List<byte[]> filteredRecords = new ArrayList<>();
 	 	Cursor cursor = getCursor();
 		while (cursor.next()) {
@@ -141,13 +141,13 @@ public class StandardTable implements Table {
 		return new ResultTable(getTableName(), selectColumns, getColumnRealIndexList(selectColumns), filteredRecords);
 	}
 	
-	private List<Integer> getColumnRealIndexList(List<ColumnType> selectColumns) {
+	private List<Integer> getColumnRealIndexList(List<ColumnMeta> selectColumns) {
 		if (selectColumns.size() == 0) {
 			return IntStream.range(0, getColumnList().size())
 							.boxed().collect(Collectors.toList());
 		} else {
 			List<Integer> selectColumnRealIndexList = new ArrayList<>();
-			for (ColumnType column : selectColumns) {
+			for (ColumnMeta column : selectColumns) {
 				selectColumnRealIndexList.add(getColumnIndex(column.getName()));
 			}
 			return selectColumnRealIndexList;
@@ -155,7 +155,7 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
-	public long insert(Map<ColumnType,String> values) {
+	public long insert(Map<ColumnMeta,String> values) {
 		int recordSize = Short.BYTES * (1 + values.size());
 		for (String value : values.values()) {
 			recordSize += Short.BYTES + StandardTableUtil.getUTFSize(value);
@@ -165,7 +165,7 @@ public class StandardTable implements Table {
 		StandardTableUtil.writeUnsignedShort(byteBuffer, getColumnCount());
 		
 		int offset = Short.BYTES * (1 + getColumnCount());
-		for (ColumnType column : getColumnList()) {
+		for (ColumnMeta column : getColumnList()) {
 			StandardTableUtil.writeUnsignedShort(byteBuffer, offset);
 			
 			byteBuffer.mark();
@@ -185,7 +185,7 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
-	public Cursor getCursor(List<ColumnType> selectColumn) {
+	public Cursor getCursor(List<ColumnMeta> selectColumn) {
 		return new StandardTableCursor(selectColumn);
 	}
 	
@@ -231,7 +231,7 @@ public class StandardTable implements Table {
 	}
 	
 	@Override
-	public List<ColumnType> getColumnList() {
+	public List<ColumnMeta> getColumnList() {
 		return tsManager.getHeader().getTableMetaInfo().getColumnList();
 	}
 
@@ -297,13 +297,13 @@ public class StandardTable implements Table {
 		
 		private final Iterator<Long> tableIndexIterator = clusteredIndex.iterator();
 		
-		private final List<ColumnType> selectColumn;
+		private final List<ColumnMeta> selectColumn;
 		
 		private long recordPos;
 		
 		private byte[] record;
 		
-		public StandardTableCursor(List<ColumnType> selectColumn) {
+		public StandardTableCursor(List<ColumnMeta> selectColumn) {
 			this.selectColumn = selectColumn;
 		}
 
@@ -328,12 +328,12 @@ public class StandardTable implements Table {
 		}
 		
 		@Override
-		public ColumnType getColumnType(int columnIdx) {
+		public ColumnMeta getColumnType(int columnIdx) {
 			return selectColumn.get(columnIdx);
 		}
 		
 		@Override
-		public ColumnType getColumnType(String columnName) {
+		public ColumnMeta getColumnType(String columnName) {
 			if (!isValidColumnName(columnName)) {
 				throw new IllegalArgumentException(columnName + " is not a valid column name");
 			}

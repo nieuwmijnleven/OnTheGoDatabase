@@ -24,7 +24,7 @@ import onthego.database.core.sqlprocessor.expression.ExpressionEvaluationExcepti
 import onthego.database.core.table.Cursor;
 import onthego.database.core.table.StandardTable;
 import onthego.database.core.table.Table;
-import onthego.database.core.table.meta.ColumnType;
+import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.table.meta.TypeConstants;
 
 public class DatabaseTest {
@@ -61,10 +61,10 @@ public class DatabaseTest {
 		Table table = StandardTable.load(databasePath.toString(), result.getTable());
 		assertEquals(result.getTable(), table.getTableName());
 		
-		List<ColumnType> columns = table.getColumnList();
+		List<ColumnMeta> columns = table.getColumnList();
 		assertEquals(3, columns.size());
 		
-		ColumnType column = columns.get(0);
+		ColumnMeta column = columns.get(0);
 		assertEquals("serial_no", column.getName());
 		assertEquals(TypeConstants.INTEGER, column.getType().getTypeConstant());
 		assertEquals(10, column.getType().getLength());

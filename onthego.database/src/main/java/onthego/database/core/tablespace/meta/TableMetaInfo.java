@@ -6,17 +6,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import onthego.database.core.table.meta.ColumnType;
+import onthego.database.core.table.meta.ColumnMeta;
 
 public class TableMetaInfo {
 	
 	private String tableName;
 	
-	private List<ColumnType> columnList;
+	private List<ColumnMeta> columnList;
 	
 	private Map<String,Integer> columnIndexMap;
 	
-	public TableMetaInfo(String tableName, List<ColumnType> columnList) {
+	public TableMetaInfo(String tableName, List<ColumnMeta> columnList) {
 		this.tableName = tableName;
 		this.columnList = columnList;
 		this.columnIndexMap = new HashMap<>();
@@ -44,15 +44,15 @@ public class TableMetaInfo {
 		this.tableName = tableName;
 	}
 
-	public List<ColumnType> getColumnList() {
+	public List<ColumnMeta> getColumnList() {
 		return Collections.unmodifiableList(this.columnList);
 	}
 
-	public void setColumnList(List<ColumnType> columnList) {
+	public void setColumnList(List<ColumnMeta> columnList) {
 		this.columnList = new ArrayList<>(columnList);
 	}
 	
-	public void addColumn(ColumnType column) {
+	public void addColumn(ColumnMeta column) {
 		this.columnList.add(column);
 		this.columnIndexMap.put(column.getName(), columnList.size());
 	}
