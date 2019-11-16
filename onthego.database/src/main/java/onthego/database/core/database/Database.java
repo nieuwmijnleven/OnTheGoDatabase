@@ -196,12 +196,15 @@ public final class Database {
 	}
 
 	private List<ColumnMeta> mapToRealTableColumn(final List<ColumnMeta> columns, Table table) {
-		List<ColumnMeta> tableColumns;
-		tableColumns = table.getColumnList().stream()
-					.filter(tableColumn -> columns.stream()
-							.anyMatch(selectColumn -> tableColumn.getName().equalsIgnoreCase(selectColumn.getName())))
-							.collect(Collectors.toList());
-		return tableColumns;
+		
+		if (columns.size() == 0) {
+			return table.getColumnList();
+		} else {
+			return table.getColumnList().stream()
+						.filter(tableColumn -> columns.stream()
+								.anyMatch(selectColumn -> tableColumn.getName().equalsIgnoreCase(selectColumn.getName())))
+								.collect(Collectors.toList());
+		}
 	}
 
 	private Map<ColumnMeta, String> createRecordDataMap(List<ColumnMeta> tableColumns, List<Expression> values, Cursor cursor) throws DatabaseException {

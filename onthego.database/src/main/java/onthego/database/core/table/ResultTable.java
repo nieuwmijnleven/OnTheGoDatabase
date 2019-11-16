@@ -154,8 +154,7 @@ public final class ResultTable implements Table {
 		
 		@Override
 		public String getColumn(int columnIdx) {
-			String columnName = columnTypeList.get(columnIdx).getName();
-			return getColumn(getColumnIndex(columnName));
+			return getColumn(columnTypeList.get(columnIdx).getName());
 		}
 
 		@Override

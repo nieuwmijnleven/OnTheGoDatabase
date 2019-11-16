@@ -36,11 +36,7 @@ public class SimpleConsole {
 				break;
 			}
 			
-			try {
-				execute(query);
-			} catch (SQLException e) {
-				System.err.println("An error occurred: " + e.getMessage());
-			}
+			execute(query);
 			System.out.print("SQL> ");
 		} while(true);
 		
@@ -72,16 +68,21 @@ public class SimpleConsole {
 		}
 	}
 
-	public void execute(String query) throws SQLException {
+	public void execute(String query) throws SimpleConsoleException {
 		if (query.stripLeading().toLowerCase().startsWith("select")) {
 			try (Statement statement = connection.createStatement(); 
 				 ResultSet resultSet = statement.executeQuery(query);) {
 				printResultTable(resultSet);
+			} catch (SQLException e) {
+				throw new SimpleConsoleException("Failed to run a selection query.");
 			}
 		} else {
 			try (Statement statement = connection.createStatement();) {
 				int affectedRowCount = statement.executeUpdate(query);
 				System.out.println("The number of affected rows is " + affectedRowCount);
+			} catch (SQLException e) {
+				e.printStackTrace();
+				throw new SimpleConsoleException("Failed to run a update query.");
 			}
 		}
 	}
@@ -91,6 +92,7 @@ public class SimpleConsole {
 		printTableHeader(resultSet.getMetaData());
 		printDecorationLine(resultSet.getMetaData());
 		printTableRecords(resultSet);
+		printDecorationLine(resultSet.getMetaData());
 	}
 
 	private void printTableRecords(ResultSet resultSet) throws SQLException {
