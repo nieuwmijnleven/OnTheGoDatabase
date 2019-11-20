@@ -3,27 +3,31 @@
 OnTheGo Database is a small embedded database engine. It supports basic database operations  such as DDL(create, drop database/table) and DML(select, insert, update, delete). Aside from which, it also provides the JDBC driver that can deal with OnTheGo Database for Java Software. 
  The reason why I started to write the OnTheGo Database is that I have thought a database is a good example to study compilers and data structures as well as I have been eager to make something to be useful for people as outstanding programmers did. Moreover, I earned profound understand about database internals. Since the project was started, I have written 8,845 lines of java codes to it for about two weeks. The OnTheGo database will be steadily updated on schedule.
 
-## Getting Started
-
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
-
 ### Prerequisites
+1. Above Java 8 
+2. Maven
 
-What things you need to install the software and how to install them
+### Functionalities
+1. Multiple Transaction(begin, commit, rollback) Support
+2. DDL(create, drop), DML(select, insert, update, delete) Support 
+3. JDBC Driver Support
 
-```
-Give examples
-```
+### To be provided (scheduled)
+1. The Full Standard SQL Support
+2. Constraint Conditions
+3. Index Support
+4. Inner/Outer Join Operation Support
+5. Optimizer/Execution Plan Support 
+6. Synchronization support for multiple thread/process environments
+7. Network Daemon
 
-### Installing
+### Example
 
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
-
+(1) create database / create table / insert
 ```
 Give the example
 ```
+(2) update / delete
 
 And repeat
 
