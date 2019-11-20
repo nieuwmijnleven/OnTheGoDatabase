@@ -1,4 +1,5 @@
 # OnTheGo Database
+[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 
 OnTheGo Database is a small embedded database engine. It supports basic database operations  such as DDL(create, drop database/table) and DML(select, insert, update, delete). Aside from which, it also provides the JDBC driver that can deal with OnTheGo Database for Java Software. 
  The reason why I started to write the OnTheGo Database is that I have thought a database is a good example to study compilers and data structures as well as I have been eager to make something to be useful for people as outstanding programmers did. Moreover, I earned profound understand about database internals. Since the project was started, I have written 8,845 lines of java codes to it for about two weeks. The OnTheGo database will be steadily updated on schedule.
@@ -34,16 +35,8 @@ OnTheGo Database is a small embedded database engine. It supports basic database
 
 ## Authors
 
-* **Jeon, Cheol** - *Initial work* - [](https://github.com/)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
+* **Jeon, Cheol** 
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
-
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+This project is licensed under the GPL v2 License - see the [LICENSE.md](LICENSE.md) file for details
