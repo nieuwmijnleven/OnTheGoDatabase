@@ -101,7 +101,7 @@ public final class Database {
 	public void dropTable(String tableName) throws DatabaseException {
 		Table dropped = tables.get(tableName);
 		if (Objects.isNull(dropped)) {
-			throw new DatabaseException(tableName + " table is not in the database.");
+			throw new DatabaseException("'" + tableName + "' table is not in the database.");
 		}
 		dropped.close();
 		
@@ -113,7 +113,7 @@ public final class Database {
 		tables.remove(tableName);
 		try {
 			if (!Files.deleteIfExists(location.resolve(tableName + ".db"))) {
-				throw new DatabaseException(tableName + " table is not in the database directory.");
+				throw new DatabaseException("'" + tableName + ".db' table is not in the database directory.");
 			}
 		} catch (IOException e) {
 			throw new DatabaseException(e);
@@ -155,7 +155,7 @@ public final class Database {
 	
 	public Table select(String tableName, List<ColumnMeta> columns, Expression where) throws DatabaseException {
 		if (!tables.containsKey(tableName)) {
-			throw new DatabaseException(tableName + " table is not in the database.");
+			throw new DatabaseException("'" + tableName + "' table is not in the database.");
 		}
 		
 		Table table = tables.get(tableName);
@@ -180,7 +180,7 @@ public final class Database {
 	
 	public int insert(String tableName, final List<ColumnMeta> columns, List<Expression> values) throws DatabaseException {
 		if (!tables.containsKey(tableName)) {
-			throw new DatabaseException(tableName + " table is not in the database.");
+			throw new DatabaseException("'" + tableName + "' table is not in the database.");
 		}
 		
 		Table table = tables.get(tableName);
@@ -220,7 +220,7 @@ public final class Database {
 
 	public int update(String tableName, List<ColumnMeta> columns, List<Expression> values, Expression where) throws DatabaseException {
 		if (!tables.containsKey(tableName)) {
-			throw new DatabaseException(tableName + " table is not in the database.");
+			throw new DatabaseException("'" + tableName + "' table is not in the database.");
 		}
 		
 		Table table = tables.get(tableName);
@@ -248,7 +248,7 @@ public final class Database {
 	
 	public int delete(String tableName, Expression where) throws DatabaseException {
 		if (!tables.containsKey(tableName)) {
-			throw new DatabaseException(tableName + " table is not in the database.");
+			throw new DatabaseException("'" + tableName + "' table is not in the database.");
 		}
 		
 		Table table = tables.get(tableName);
