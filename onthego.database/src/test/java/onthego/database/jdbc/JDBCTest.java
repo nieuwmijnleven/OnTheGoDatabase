@@ -164,7 +164,7 @@ public class JDBCTest {
 			}
 		} catch (SQLException e) {
 			throw e;
-		}
+		} 
 		
 		String query = "select serial_no, name, price from product";
 		try (Connection conn = DriverManager.getConnection(JDBC_URL);
