@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import onthego.database.core.sqlprocessor.SQLProcessor;
@@ -98,9 +99,11 @@ public final class Database {
 	}
 	
 	public void dropTable(String tableName) throws DatabaseException {
-		if (!tables.containsKey(tableName)) {
+		Table dropped = tables.get(tableName);
+		if (Objects.isNull(dropped)) {
 			throw new DatabaseException(tableName + " table is not in the database.");
 		}
+		dropped.close();
 		
 		/*if (hasTransaction()) {
 			Table removed = tables.get(tableName);
