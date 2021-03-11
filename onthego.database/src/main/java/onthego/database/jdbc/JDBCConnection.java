@@ -63,7 +63,9 @@ public class JDBCConnection extends ConnectionAdapter {
 		public void commit() throws SQLException {}
 
 		@Override
-		public void close() throws SQLException {}
+		public void close() throws SQLException {
+			database.close();
+		}
 
 		@Override
 		public void setAutoCommit(boolean autoCommit) throws SQLException {

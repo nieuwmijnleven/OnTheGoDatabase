@@ -8,6 +8,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -25,6 +28,8 @@ import onthego.database.core.tablespace.meta.TableMetaInfo;
 
 public class StandardTableTest {
 	
+	private Path tablePath = Paths.get("./test.db");
+	
 	private Table table;
 
 	@Before
@@ -40,10 +45,8 @@ public class StandardTableTest {
 
 	@After
 	public void tearDown() throws Exception {
-		File file = new File("./test.db");
-		if (file.exists()) {
-			file.delete();
-		}
+		table.close();
+		Files.deleteIfExists(tablePath);
 	}
 	
 	private TableMetaInfo generateTableMetaInfo() {
