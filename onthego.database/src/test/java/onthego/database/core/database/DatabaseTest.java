@@ -44,6 +44,7 @@ public class DatabaseTest {
 
 	@After
 	public void tearDown() throws Exception {
+		database.close();
 		Files.deleteIfExists(tablePath);
 		Files.deleteIfExists(databasePath);
 	}
@@ -78,6 +79,8 @@ public class DatabaseTest {
 		assertEquals(TypeConstants.NUMERIC, column.getType().getTypeConstant());
 		assertEquals(10, column.getType().getLength());
 		assertEquals(3, column.getType().getDecimalLength());
+		
+		table.close();
 	}
 
 	private SQLResult createTable() throws DatabaseException {
@@ -92,7 +95,7 @@ public class DatabaseTest {
 		
 		database.createTable(result.getTable(), result.getColumns());
 		assertTrue(Files.exists(tablePath));
-		
+
 		return result;
 	}
 	
