@@ -19,7 +19,9 @@ public class SimpleConsole {
 	
 	public static final String JDBC_URL = JDBC_PREFIX + DATABASE_HOME_PATH.toString();
 	
-	private Scanner scanner = new Scanner(System.in);
+	public static final String PROMPT = "SQL> ";
+	
+	public static final String COMMAND_EXIT = "exit";
 	
 	private Connection connection;
 	
@@ -27,18 +29,21 @@ public class SimpleConsole {
 		loadJDBCDriver();
 		openDatabase();
 		
-		System.out.print("SQL> ");
-		do {
-			String query = scanner.nextLine().strip();
-			if (Objects.isNull(query) || query.length() == 0) {
-				continue;
-			} else if (query.strip().equalsIgnoreCase("exit")) {
-				break;
-			}
+		Scanner scanner = new Scanner(System.in);
+		while (true) {
+			System.out.print(PROMPT);
 			
-			execute(query);
-			System.out.print("SQL> ");
-		} while(true);
+			String query = scanner.nextLine().strip();
+			if (query.length() == 0) continue;
+			if (COMMAND_EXIT.equalsIgnoreCase(query)) break;
+			
+			try {
+				execute(query);
+			} catch (SimpleConsoleException sce) {
+				System.out.println(sce.getMessage());
+			} 
+		}
+		scanner.close();
 		
 		closeDatabase();
 	}
@@ -69,20 +74,19 @@ public class SimpleConsole {
 	}
 
 	public void execute(String query) throws SimpleConsoleException {
-		if (query.stripLeading().toLowerCase().startsWith("select")) {
+		if (query.toLowerCase().startsWith("select")) {
 			try (Statement statement = connection.createStatement(); 
 				 ResultSet resultSet = statement.executeQuery(query);) {
 				printResultTable(resultSet);
 			} catch (SQLException e) {
-				throw new SimpleConsoleException("Failed to run a selection query.");
+				throw new SimpleConsoleException(e.getMessage());
 			}
 		} else {
 			try (Statement statement = connection.createStatement();) {
 				int affectedRowCount = statement.executeUpdate(query);
 				System.out.println("The number of affected rows is " + affectedRowCount);
 			} catch (SQLException e) {
-				e.printStackTrace();
-				throw new SimpleConsoleException("Failed to run a update query.");
+				throw new SimpleConsoleException(e.getMessage());
 			}
 		}
 	}
