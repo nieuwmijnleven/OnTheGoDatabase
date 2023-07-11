@@ -30,10 +30,10 @@ There are so many things to do in order for the OnTheGo database to become one o
 ## Example
 
 1. create database / create table / insert
-![OnTheGo-Example-Create-Insert](https://user-images.githubusercontent.com/56591823/69252370-78c7d580-0be5-11ea-85f4-f113d720941a.png)
+![image](https://github.com/nieuwmijnleven/OnTheGoDatabase/assets/56591823/507462dd-9b8e-4c9f-b8dc-76df1d722c83)
 
 2. update / delete
-![OnTheGo-Example-Update-Delete](https://user-images.githubusercontent.com/56591823/69252577-d2c89b00-0be5-11ea-9d94-58009ba98d04.png)
+![image](https://github.com/nieuwmijnleven/OnTheGoDatabase/assets/56591823/30f5b09f-d44e-458d-9a79-c17bdaaabfaf)
 
 ## Authors
 
