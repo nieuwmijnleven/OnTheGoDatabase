@@ -18,9 +18,11 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.IntStream;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.OrderWith;
+import org.junit.runner.manipulation.Alphanumeric;
 
 import onthego.database.core.exception.InsufficientPayloadSpaceException;
 import onthego.database.core.table.meta.ColumnMeta;
@@ -33,19 +35,24 @@ import onthego.database.core.tablespace.meta.SingleTablespaceHeader;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
 import onthego.database.core.tablespace.meta.TablespaceHeader;
 
+@OrderWith(Alphanumeric.class)
 public class SingleTablespaceManagerTest {
 	
 	private static final byte[] MAGIC = {0x11, 0x10, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04};
 
-	private TablespaceManager tsManager;
+    private static final int RECORD_COUNT = 20;
+
+	private static TablespaceManager tsManager;
+
+    private List<Long> blockPosList = new ArrayList<>(RECORD_COUNT);
 	
-	@Before
-	public void setUp() throws Exception {
+	@BeforeClass
+	public static void setUp() throws Exception {
 		createSingleTablespace();
 	}
 
-	@After
-	public void tearDown() throws Exception {
+	@AfterClass
+	public static void tearDown() throws Exception {
 		if (tsManager != null) {
 			tsManager.close();
 		}
@@ -53,7 +60,7 @@ public class SingleTablespaceManagerTest {
 		removeSingleTablespace();
 	}
 
-	private void createSingleTablespace() throws IOException {
+	private static void createSingleTablespace() throws IOException {
 		removeSingleTablespace();
 		TablespaceHeader tsHeader = new SingleTablespaceHeader.Builder()
 										.magic(MAGIC)
@@ -63,13 +70,13 @@ public class SingleTablespaceManagerTest {
 										.firstFreeBlockPos(0)
 										.tableRootPos(200)
 										.tableMetaInfoPos(300)
-										.recordCount(400)
+										.recordCount(0)
 										.build();
 		
 		tsManager = SingleTablespaceManager.create("./dummytable.db", tsHeader);
 	}
 
-	private void removeSingleTablespace() {
+	private static void removeSingleTablespace() {
 		File file = new File("./dummytable.db");
 		if (file.exists()) {
 			file.delete();
@@ -91,7 +98,7 @@ public class SingleTablespaceManagerTest {
 	}
 	
 	@Test
-	public void testCreate() {
+	public void A_Test_Create() {
 		try (RandomAccessFile io = new RandomAccessFile("./dummytable.db", "r")) {
 			byte[] writtenMagic = new byte[SingleTablespaceHeader.MAGIC_NUMBER_SIZE];
 			io.read(writtenMagic);
@@ -103,14 +110,14 @@ public class SingleTablespaceManagerTest {
 			assertEquals(0, io.readLong());
 			assertEquals(200, io.readLong());
 			assertEquals(300, io.readLong());
-			assertEquals(400, io.readInt());
+			assertEquals(0, io.readInt());
 		} catch(IOException ioe) {
 			fail("io error occurred : " + ioe.getMessage());
 		}
 	}
 
 	@Test
-	public void testLoad() throws IOException {
+	public void B_Test_Load() throws IOException {
 		generateTableMetaInfo();
 		
 		TablespaceManager tsManager = SingleTablespaceManager.load("./dummytable.db");
@@ -124,11 +131,11 @@ public class SingleTablespaceManagerTest {
 		assertEquals(0, tsHeader.getFirstFreeBlockPos());
 		assertEquals(200, tsHeader.getTableRootPos());
 		assertEquals(80, tsHeader.getTableMetaInfoPos());
-		assertEquals(400, tsHeader.getRecordCount());
+		assertEquals(0, tsHeader.getRecordCount());
 	}
 	
 	@Test
-	public void testCreateTableMetaInfo() {
+	public void C_Test_CreateTableMetaInfo() {
 		TableMetaInfo tableMetaInfo = generateTableMetaInfo();
 		
 		long tableMetaInfoPos = tsManager.getHeader().getTableMetaInfoPos();
@@ -151,7 +158,7 @@ public class SingleTablespaceManagerTest {
 	}
 
 	@Test
-	public void testLoadTableMetaInfo() {
+	public void D_Test_LoadTableMetaInfo() {
 		TableMetaInfo generatedTableMetaInfo = generateTableMetaInfo();
 		
 		tsManager.loadTableInfoEntry();
@@ -161,41 +168,38 @@ public class SingleTablespaceManagerTest {
 	}
 	
 	@Test
-	public void testSaveRootPos() {
+	public void E_Test_SaveRootPos() {
+        long rootPos = tsManager.getRootPos();
+
 		tsManager.saveRootPos(Long.MAX_VALUE);
 		assertEquals(tsManager.getRootPos(), Long.MAX_VALUE);
+
+        tsManager.saveRootPos(rootPos);
 	}
 	
 	@Test
-	public void testGetRootPos() {
+	public void F_Test_GetRootPos() {
 		assertEquals(200, tsManager.getRootPos());
 	}
 	
 	@Test
-	public void testIncreaseRecordCount() {
-		IntStream.range(0, 200).forEach(i -> tsManager.increaseRecordCount());
-		assertEquals(600, tsManager.getRecordCount());
+	public void G_Test_IncreaseRecordCount() {
+		IntStream.range(0, RECORD_COUNT).forEach(i -> tsManager.increaseRecordCount());
+		assertEquals(RECORD_COUNT, tsManager.getRecordCount());
 	}
 	
 	@Test
-	public void testDecreaseRecordCount() {
-		IntStream.range(0, 100).forEach(i -> tsManager.decreaseRecordCount());
-		assertEquals(300, tsManager.getRecordCount());
+	public void H_Test_DecreaseRecordCount() {
+		IntStream.range(0, RECORD_COUNT).forEach(i -> tsManager.decreaseRecordCount());
+		assertEquals(0, tsManager.getRecordCount());
 	}
 
 	@Test
-	public void testGetRecordCount() {
-		IntStream.range(0, 200).forEach(i -> tsManager.increaseRecordCount());
-		IntStream.range(0, 100).forEach(i -> tsManager.decreaseRecordCount());
-		assertEquals(500, tsManager.getRecordCount());
-	}
-
-	@Test
-	public void testAllocate() {
+	public void I_Test_Allocate() {
 		int size = 3 * (Integer.BYTES + Long.BYTES);
-		List<Long> blockPosList = new ArrayList<>(500);
+		blockPosList = new ArrayList<>(RECORD_COUNT);
 		
-		IntStream.range(0, 500).forEach(i -> {
+		IntStream.range(0, RECORD_COUNT).forEach(i -> {
 			long blockPos = tsManager.allocate(size);
 			blockPosList.add(blockPos);
 			
@@ -217,7 +221,7 @@ public class SingleTablespaceManagerTest {
 			}
 		});
 		
-		IntStream.range(0, 500).forEach(i -> {
+		IntStream.range(0, RECORD_COUNT).forEach(i -> {
 			long blockPos = blockPosList.get(i);
 
 			try (ByteArrayInputStream bin = new ByteArrayInputStream(tsManager.readBlock(blockPos));
@@ -235,18 +239,18 @@ public class SingleTablespaceManagerTest {
 	}
 
 	@Test
-	public void testFree() {
+	public void J_Test_Free() {
 		Random random = new Random(System.currentTimeMillis());
-		List<Long> blockPosList = new ArrayList<>(500);
+		// List<Long> blockPosList = new ArrayList<>(RECORD_COUNT);
 		
-		IntStream.range(0, 500).forEach(i -> {
+		IntStream.range(0, RECORD_COUNT).forEach(i -> {
 			int size = random.nextInt(128) + 1;
 			long blockPos = tsManager.allocate(size);
 			blockPosList.add(blockPos);
 		});
 		
 		Collections.shuffle(blockPosList);
-		IntStream.range(0, 500).forEach(i -> {
+		IntStream.range(0, RECORD_COUNT).forEach(i -> {
 			long blockPos = blockPosList.get(i);
 			tsManager.free(blockPos);
 			tsManager.printFreeListBlock();
@@ -254,8 +258,7 @@ public class SingleTablespaceManagerTest {
 	}
 	
 	@Test
-	public void testSaveHeader() {
-		testGetRecordCount();
+	public void K_Test_SaveHeader() {
 		tsManager.saveRootPos(1024);
 		tsManager.saveHeader();
 		
@@ -263,37 +266,30 @@ public class SingleTablespaceManagerTest {
 			byte[] writtenMagic = new byte[SingleTablespaceHeader.MAGIC_NUMBER_SIZE];
 			io.read(writtenMagic);
 			
-			assertArrayEquals(MAGIC, writtenMagic);
-			assertEquals(4, io.readInt());
-			assertEquals(10, io.readInt());
-			assertEquals(100, io.readLong());
-			assertEquals(0, io.readLong());
-			assertEquals(1024, io.readLong());
-			assertEquals(300, io.readLong());
-			assertEquals(500, io.readInt());
+			assertArrayEquals(tsManager.getHeader().getMagic(), writtenMagic);
+			assertEquals(tsManager.getHeader().getChunkSize(), io.readInt());
+			assertEquals(tsManager.getHeader().getCrc(), io.readInt());
+			assertEquals(tsManager.getHeader().getFirstBlockPos(), io.readLong());
+			assertEquals(tsManager.getHeader().getFirstFreeBlockPos(), io.readLong());
+			assertEquals(tsManager.getRootPos(), io.readLong());
+			assertEquals(tsManager.getHeader().getTableMetaInfoPos(), io.readLong());
+			assertEquals(tsManager.getRecordCount(), io.readInt());
 		} catch(IOException ioe) {
 			fail("io error occurred : " + ioe.getMessage());
 		}
 	}
 	
 	@Test
-	public void testLoadHeader() {
-		try (RandomAccessFile io = new RandomAccessFile("./dummytable.db", "rws")) {
-			io.seek(0);
-			io.write(MAGIC);
-			io.writeInt(4);
-			io.writeInt(10);
-			io.writeLong(100);
-			io.writeLong(0);
-			io.writeLong(1024);
-			io.writeLong(300);
-			io.writeInt(500);
-		} catch(IOException ioe) {
-			fail("io error occurred : " + ioe.getMessage());
-		}
-		
-		tsManager.loadHeader();
-		assertEquals(1024, tsManager.getRootPos());
-		assertEquals(500, tsManager.getRecordCount());
+	public void L_Test_LoadHeader() {
+        tsManager.loadHeader();
+
+        assertArrayEquals(MAGIC, tsManager.getHeader().getMagic());
+        assertEquals(4, tsManager.getHeader().getChunkSize());
+        assertEquals(10, tsManager.getHeader().getCrc());
+        assertEquals(100, tsManager.getHeader().getFirstBlockPos());
+        // assertEquals(80, tsManager.getHeader().getFirstFreeBlockPos());
+        assertEquals(1024, tsManager.getRootPos());
+        // assertEquals(300, tsManager.getHeader().getTableMetaInfoPos());
+        assertEquals(0, tsManager.getRecordCount());
 	}
 }

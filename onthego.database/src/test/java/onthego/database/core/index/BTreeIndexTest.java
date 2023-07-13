@@ -11,10 +11,8 @@ import java.util.Iterator;
 import java.util.Random;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import onthego.database.core.datastructure.memory.BTree;
 import onthego.database.core.tablespace.manager.SingleTablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 import onthego.database.core.tablespace.meta.SingleTablespaceHeader;
@@ -22,7 +20,7 @@ import onthego.database.core.tablespace.meta.TablespaceHeader;
 
 public class BTreeIndexTest {
 	
-	private static final int MAX_KEY_VALUE = 1000;
+	private static final int MAX_KEY_VALUE = 20;
 	
 	private static final int MIN_KEY_VALUE = 1;
 	

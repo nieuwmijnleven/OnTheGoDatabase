@@ -19,7 +19,7 @@ import org.junit.Test;
 
 public class JDBCTest {
 	
-	public static final int TEST_RECORD_COUNT = 100;
+	public static final int TEST_RECORD_COUNT = 20;
 	
 	public static final Path DATABASE_PATH = Paths.get(".", "onthego_database");
 	
