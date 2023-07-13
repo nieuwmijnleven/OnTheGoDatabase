@@ -15,17 +15,7 @@ Er zijn veel dingen die ik zouden moeten doen om OnTheGo database een authentiek
 2. DDL(create, drop), DML(select, insert, update, delete) Support 
 3. JDBC Driver Support
 
-## To be provided (scheduled)
-
-1. The Full Standard SQL Support
-2. Constraint Conditions
-3. Index Support
-4. Inner/Outer Join Operation Support
-5. Optimizer/Execution Plan Support 
-6. Synchronization support for multiple thread/process environments
-7. Network Daemon
-
-## Example
+## Schermafbeelden
 
 1. create database / create table / insert
 ![image](https://github.com/nieuwmijnleven/OnTheGoDatabase/assets/56591823/507462dd-9b8e-4c9f-b8dc-76df1d722c83)
@@ -33,10 +23,6 @@ Er zijn veel dingen die ik zouden moeten doen om OnTheGo database een authentiek
 2. update / delete
 ![image](https://github.com/nieuwmijnleven/OnTheGoDatabase/assets/56591823/30f5b09f-d44e-458d-9a79-c17bdaaabfaf)
 
-## Authors
+## Autheur
 
 * **Jeon, Cheol** 
-
-## License
-
-This project is licensed under the GPL v2 License - see the [LICENSE.md](LICENSE.md) file for details
