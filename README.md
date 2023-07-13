@@ -1,10 +1,9 @@
 # OnTheGo Database
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 
-OnTheGo Database is a small embedded database engine. It supports basic database operations  such as DDL(create, drop database/table) and DML(select, insert, update, delete). Aside from which, it also provides the JDBC driver that can deal with OnTheGo Database for Java Software. 
- The reason why I started to write the OnTheGo Database is that I have thought a database is a good example to study compilers and data structures as well as I have been eager to make something to be useful for people as outstanding programmers did. Moreover, I earned profound understand about database internals. Since the project was started, I have written 8,845 lines of java codes to it for about two weeks. 
- 
-There are so many things to do in order for the OnTheGo database to become one of the authentic databases. OnTheGo database is short of some functionalities such as Index, join, optimizer, synchronization, and network daemon. However, these  will be implemented steadily on schedule. Also, I plan to refactor lots of parts of codes to enhance readability and maintenance.
+OnTheGo database is een simpel duurzame database engine. Die ondersteunt basis database operaties. Zoals DDL (create, drop database/table) en DML (select, insert, update, delete). Daarnast verstrekt dit ook de JDBC-driver die OnTheGo Database aankunt voor Java Software. De reden waarom Ik OnTheGo Database project begon is dat I heb gedacht dat een database is een goed voorbeeld om compiler en datastructuren te studeren. Verder, ik wilde iets wat handig is voor mensen maken als uitstekend softwareontwikkelaren deden. Eindelijk had ik een simpel duurzame database gemaakt en kreeg ik een diep verstand van binnenstructuren van database.  
+
+Er zijn veel dingen die ik zouden moeten doen om OnTheGo database een authentieke database te maken. OnTheGo database is gebrek aan sommige funtionaliteiten. Zoals index, join, optimizer, synchronization, end network daemon. Ik denk dat dit project een bewijs van mijn zuivere enthousiasme van softwareontwikkeling is  
 
 ## Prerequisites
 
