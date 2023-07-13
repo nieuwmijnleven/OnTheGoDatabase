@@ -15,12 +15,27 @@ Er zijn veel dingen die ik zouden moeten doen om OnTheGo database een authentiek
 2. DDL(create, drop), DML(select, insert, update, delete) Support 
 3. JDBC Driver Support
 
+## Het Verloop van Uitvoering
+### 1. De Github-Opslagplaats van OnTheGo Database Project Klonen
+```
+$> git clone https://github.com/nieuwmijnleven/OnTheGoDatabase.git
+$> cd ./OnTheGoDatabase/onthego.database
+```
+### 2. OnTheGo Database Opbowen
+```
+$> mvn package
+```
+### 3. OnTheGo Database Starten
+```
+$> java -jar onthego_database.jar
+```
+
 ## Schermafbeelden
 
-1. create database / create table / insert
+### 1. create database / create table / insert
 ![image](https://github.com/nieuwmijnleven/OnTheGoDatabase/assets/56591823/507462dd-9b8e-4c9f-b8dc-76df1d722c83)
 
-2. update / delete
+### 2. update / delete
 ![image](https://github.com/nieuwmijnleven/OnTheGoDatabase/assets/56591823/30f5b09f-d44e-458d-9a79-c17bdaaabfaf)
 
 ## Autheur
