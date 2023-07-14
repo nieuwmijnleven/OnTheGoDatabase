@@ -33,10 +33,10 @@ $> java -jar onthego_database.jar
 ## Schermafbeelden
 
 ### 1. create database / create table / insert
-![image](https://github.com/nieuwmijnleven/OnTheGoDatabase/assets/56591823/507462dd-9b8e-4c9f-b8dc-76df1d722c83)
+![image](https://github.com/nieuwmijnleven/OnTheGoDatabase/assets/56591823/9c58c583-2c0f-44a1-880f-48b40c6399dc)
 
 ### 2. update / delete
-![image](https://github.com/nieuwmijnleven/OnTheGoDatabase/assets/56591823/30f5b09f-d44e-458d-9a79-c17bdaaabfaf)
+![image](https://github.com/nieuwmijnleven/OnTheGoDatabase/assets/56591823/c4861fa8-3380-489b-a007-5736c92afb10)
 
 ## Autheur
 
