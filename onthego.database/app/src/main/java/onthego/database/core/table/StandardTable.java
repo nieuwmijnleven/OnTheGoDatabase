@@ -16,9 +16,9 @@ import java.util.stream.IntStream;
 import onthego.database.core.database.DatabaseException;
 import onthego.database.core.index.BTreeIndex;
 import onthego.database.core.table.meta.ColumnMeta;
-import onthego.database.core.tablespace.manager.SingleTablespaceManager;
+import onthego.database.core.tablespace.manager.StandardTablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManager;
-import onthego.database.core.tablespace.meta.SingleTablespaceHeader;
+import onthego.database.core.tablespace.meta.StandardTablespaceHeader;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
 import onthego.database.core.tablespace.meta.TablespaceHeader;
 
@@ -38,11 +38,11 @@ public class StandardTable implements Table {
 	
 	// To create a standard table
 	private StandardTable(String path, String tableName, TableMetaInfo tableMetaInfo) throws IOException {
-		TablespaceHeader tsHeader = new SingleTablespaceHeader.Builder()
+		TablespaceHeader tsHeader = new StandardTablespaceHeader.Builder()
 										.chunkSize(16)
 										.tableMetaInfo(tableMetaInfo)
 										.build();
-		this.tsManager = SingleTablespaceManager.create(path + File.separator + tableName + ".db", tsHeader);
+		this.tsManager = StandardTablespaceManager.create(path + File.separator + tableName + ".db", tsHeader);
 		this.clusteredIndex = new BTreeIndex<>(128, tsManager);
 		this.tableName = tableName;
 		this.transactionStack = new Stack<>();
@@ -50,7 +50,7 @@ public class StandardTable implements Table {
 	
 	// To load a standard table
 	private StandardTable(String path, String tableName) throws IOException {
-		this.tsManager = SingleTablespaceManager.load(path + File.separator + tableName + ".db");
+		this.tsManager = StandardTablespaceManager.load(path + File.separator + tableName + ".db");
 		this.clusteredIndex = new BTreeIndex<>(128, tsManager);
 		this.tableName = tableName;
 		this.transactionStack = new Stack<>();

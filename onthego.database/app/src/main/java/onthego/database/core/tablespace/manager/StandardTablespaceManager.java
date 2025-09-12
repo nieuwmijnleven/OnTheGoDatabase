@@ -1,12 +1,5 @@
 package onthego.database.core.tablespace.manager;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.util.ArrayList;
-import java.util.List;
-
 import onthego.database.core.exception.InsufficientPayloadSpaceException;
 import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.table.meta.TypeConstants;
@@ -15,26 +8,42 @@ import onthego.database.core.tablespace.meta.StandardTablespaceHeader;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
 import onthego.database.core.tablespace.meta.TablespaceHeader;
 
-public class SingleTablespaceManager implements TablespaceManager {
-	
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
+
+import static onthego.database.util.IOUtils.getByteBuffer;
+
+public class StandardTablespaceManager implements TablespaceManager {
+
 	public static final int BLOCK_HEADER_SIZE = Integer.BYTES;
-	
+
 	public static final int BLOCK_FOOTER_SIZE = Integer.BYTES;
-	
+
 	public static final int BLOCK_OVERHEAD_SIZE = BLOCK_HEADER_SIZE + BLOCK_FOOTER_SIZE;
-	
+
 	public static final int FREE_LIST_NODE_SIZE = 2 * Long.BYTES;
-	
+
 	public static final int BLOCK_OVERHEAD_WITH_FREELIST_SIZE = BLOCK_OVERHEAD_SIZE + FREE_LIST_NODE_SIZE;
-	
-	private final RandomAccessFile io;
-	
+
+    public static final int DEFAULT_BLOCK_SIZE = 4096;
+
+    private final FileChannel channel;
+
 	private TablespaceHeader tsHeader;
-	
+
 	static class FreeListNode {
 		long prev;
 		long next;
-		
+
 		FreeListNode(long prev, long next)
 		{
 			this.prev = prev;
@@ -43,46 +52,72 @@ public class SingleTablespaceManager implements TablespaceManager {
 	}
 
     public static TablespaceManager create(String tsPath, TablespaceHeader tsHeader) throws IOException {
-		return new SingleTablespaceManager(tsPath, tsHeader);
+        return create(Path.of(tsPath), tsHeader);
+    }
+
+    public static TablespaceManager create(Path tsPath, TablespaceHeader tsHeader) throws IOException {
+		return new StandardTablespaceManager(tsPath, tsHeader);
 	}
-	
-	public static TablespaceManager load(String tsPath) throws IOException {
-		return new SingleTablespaceManager(tsPath);
+
+    public static TablespaceManager load(String tsPath) throws IOException {
+        return load(Path.of(tsPath));
+    }
+
+	public static TablespaceManager load(Path tsPath) throws IOException {
+		return new StandardTablespaceManager(tsPath);
 	}
-	
-	private SingleTablespaceManager(String tsPath, TablespaceHeader tsHeader) throws IOException {
-		this.io = new RandomAccessFile(tsPath, "rws");
-		this.tsHeader = tsHeader; 
+
+	private StandardTablespaceManager(Path tsPath, TablespaceHeader tsHeader) throws IOException {
+		this.channel = FileChannel.open(tsPath, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
+		this.tsHeader = tsHeader;
 		initialize();
-		
+
 		if (tsHeader.getTableMetaInfo() != null) {
 			createTableInfoEntry(tsHeader.getTableMetaInfo());
 		}
 	}
-	
-	private SingleTablespaceManager(String tsPath) throws IOException {
-		this.io = new RandomAccessFile(tsPath, "rws");
+
+	private StandardTablespaceManager(Path tsPath) throws IOException {
+		this.channel = FileChannel.open(tsPath, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
 		loadHeader();
 		loadTableInfoEntry();
 	}
+
+    private void read(long position, ByteBuffer buffer) {
+        try {
+            channel.position(position);
+            channel.read(buffer);
+        } catch (IOException ioe) {
+            throw new TablespaceManagerException(ioe);
+        }
+    }
+
+    private void write(long position, ByteBuffer buffer) {
+        try {
+            channel.position(position);
+            channel.write(buffer);
+        } catch (IOException ioe) {
+            throw new TablespaceManagerException(ioe);
+        }
+    }
 		
 	@Override
 	public void loadHeader() {
 		try {
-			io.seek(0);
-			
-			byte[] magic = new byte[StandardTablespaceHeader.MAGIC_NUMBER_SIZE];
-			io.read(magic);
+            ByteBuffer buffer = getByteBuffer(DEFAULT_BLOCK_SIZE, true, buf -> read(0, buf));
+
+            byte[] magic = new byte[StandardTablespaceHeader.MAGIC_NUMBER_SIZE];
+			buffer.get(magic);
 			
 			tsHeader = new StandardTablespaceHeader.Builder()
 							.magic(magic)
-							.chunkSize(io.readInt())
-							.crc(io.readInt())
-							.firstBlockPos(io.readLong())
-							.firstFreeBlockPos(io.readLong())
-							.tableRootPos(io.readLong())
-							.tableMetaInfoPos(io.readLong())
-							.recordCount(io.readInt())
+							.chunkSize(buffer.getInt())
+							.crc(buffer.getInt())
+							.firstBlockPos(buffer.getLong())
+							.firstFreeBlockPos(buffer.getLong())
+							.tableRootPos(buffer.getLong())
+							.tableMetaInfoPos(buffer.getLong())
+							.recordCount(buffer.getInt())
 							.build();
 			
 		} catch(Exception ioe) {
@@ -93,15 +128,18 @@ public class SingleTablespaceManager implements TablespaceManager {
 	@Override
 	public void saveHeader() {
 		try {
-			io.seek(0);
-			io.write(tsHeader.getMagic());
-			io.writeInt(tsHeader.getChunkSize());
-			io.writeInt(tsHeader.getCrc());
-			io.writeLong(tsHeader.getFirstBlockPos());
-			io.writeLong(tsHeader.getFirstFreeBlockPos());
-			io.writeLong(tsHeader.getTableRootPos());
-			io.writeLong(tsHeader.getTableMetaInfoPos());
-			io.writeInt(tsHeader.getRecordCount());
+            ByteBuffer buffer = getByteBuffer(DEFAULT_BLOCK_SIZE, true, buf -> {
+                buf.put(tsHeader.getMagic());
+                buf.putInt(tsHeader.getChunkSize());
+                buf.putInt(tsHeader.getCrc());
+                buf.putLong(tsHeader.getFirstBlockPos());
+                buf.putLong(tsHeader.getFirstFreeBlockPos());
+                buf.putLong(tsHeader.getTableRootPos());
+                buf.putLong(tsHeader.getTableMetaInfoPos());
+                buf.putInt(tsHeader.getRecordCount());
+            });
+
+            write(0, buffer);
 		} catch(Exception ioe) {
 			throw new TablespaceManagerException(ioe);
 		}
@@ -112,11 +150,15 @@ public class SingleTablespaceManager implements TablespaceManager {
 			//write the header into a tablespace first
 			saveHeader();
 			//mark a sentinel(dummy) area between tablespace header and data blocks
-			io.writeInt(1);
+//            ByteBuffer buffer = ByteBuffer.allocate(DEFAULT_BLOCK_SIZE);
+//            buffer.putInt(2);
+//            buffer.flip();
+
+            ByteBuffer buffer = getByteBuffer(DEFAULT_BLOCK_SIZE, true, buf -> buf.putInt(2));
+            channel.write(buffer);
 			//set the prolog block which is never freed for coalescing free blocks 
 			allocate(0);
 		} catch(Exception ioe) {
-			ioe.printStackTrace();
 			throw new TablespaceManagerException(ioe);
 		}
 	}
@@ -140,27 +182,30 @@ public class SingleTablespaceManager implements TablespaceManager {
 			byte[] tableMetaInfoEntry = baout.toByteArray();
 			
 			tsHeader.setTableMetaInfoPos(allocate(tableMetaInfoEntry.length));
-			io.seek(tsHeader.getTableMetaInfoPos());
-			io.write(tableMetaInfoEntry);
-			tsHeader.setTableMetaInfo(tableMetaInfo);
+            write(tsHeader.getTableMetaInfoPos(), ByteBuffer.wrap(tableMetaInfoEntry));
+            tsHeader.setTableMetaInfo(tableMetaInfo);
 			saveHeader();
 		} catch (Exception e) {
 			throw new TablespaceManagerException(e);
 		}
 	}
 
-	public void loadTableInfoEntry() {
+    public void loadTableInfoEntry() {
+        DataInputStream dataBuffer = null;
 		try {
-			io.seek(tsHeader.getTableMetaInfoPos());
-			
-			String tableName = io.readUTF();
-			int columnCount = io.readInt();
+            ByteBuffer buffer = ByteBuffer.allocate(DEFAULT_BLOCK_SIZE);
+            read(tsHeader.getTableMetaInfoPos(), buffer);
+
+            dataBuffer = new DataInputStream(new ByteArrayInputStream(buffer.array()));
+
+			String tableName = dataBuffer.readUTF();
+			int columnCount = dataBuffer.readInt();
 			List<ColumnMeta> columnList = new ArrayList<>();
 			for (int i = 0; i < columnCount; ++i) { 
-				String name = io.readUTF();
-				TypeConstants typeConstants = TypeConstants.valueOf(io.readUTF());
-				int length = io.readInt();
-				int decimalLength = io.readInt();
+				String name = dataBuffer.readUTF();
+				TypeConstants typeConstants = TypeConstants.valueOf(dataBuffer.readUTF());
+				int length = dataBuffer.readInt();
+				int decimalLength = dataBuffer.readInt();
 				
 				columnList.add(new ColumnMeta(name, Types.of(typeConstants, length, decimalLength)));
 			}
@@ -170,8 +215,8 @@ public class SingleTablespaceManager implements TablespaceManager {
 			throw new TablespaceManagerException(ioe);
 		}
 	}
-	
-	// The aligned size is multiplication of chunksize
+
+    // The aligned size is multiplication of chunksize
 	private int getChunkAlignedSize(int size) {
 		return (size + (tsHeader.getChunkSize() - 1)) & ~(tsHeader.getChunkSize() - 1);
 	}
@@ -182,9 +227,10 @@ public class SingleTablespaceManager implements TablespaceManager {
 
 	private int getBlockHeader(long payloadPos) {
 		try {
-			io.seek(getBlockHeaderPos(payloadPos));
-			return io.readInt();
+            ByteBuffer buffer = getByteBuffer(DEFAULT_BLOCK_SIZE, true, buf -> read(getBlockHeaderPos(payloadPos), buf));
+            return buffer.getInt();
 		} catch(Exception ie) {
+            ie.printStackTrace();
 			throw new TablespaceManagerException(ie);
 		}
 	}
@@ -204,12 +250,8 @@ public class SingleTablespaceManager implements TablespaceManager {
 	}
 
 	private void putBlockHeader(long payloadPos, int blockHeader) {
-		try {
-			io.seek(getBlockHeaderPos(payloadPos));
-			io.writeInt(blockHeader);
-		} catch(Exception ie) {
-			throw new TablespaceManagerException(ie);
-		}
+        ByteBuffer buffer = getByteBuffer(DEFAULT_BLOCK_SIZE, true, buf -> buf.putInt(blockHeader));
+        write(getBlockHeaderPos(payloadPos), buffer);
 	}
 	
 	private long getNextBlockPos(long payloadPos) {
@@ -217,12 +259,8 @@ public class SingleTablespaceManager implements TablespaceManager {
 	}
 
 	private void putBlockFooter(long payloadPos, int blockFooter) {
-		try {
-			io.seek(getNextBlockPos(payloadPos) - BLOCK_OVERHEAD_SIZE);
-			io.writeInt(blockFooter);
-		} catch(Exception ie) {
-			throw new TablespaceManagerException(ie);
-		}
+        ByteBuffer buffer = getByteBuffer(DEFAULT_BLOCK_SIZE, true, buf -> buf.putInt(blockFooter));
+        write(getNextBlockPos(payloadPos) - BLOCK_OVERHEAD_SIZE, buffer);
 	}
 
 	private long getPrevBlockPos(long payloadPos) {
@@ -231,21 +269,20 @@ public class SingleTablespaceManager implements TablespaceManager {
 	
 	private FreeListNode getFreeBlock(long payloadPos) {
 		try {
-			io.seek(payloadPos);
-			return new FreeListNode(io.readLong(), io.readLong());
+            ByteBuffer buffer = getByteBuffer(DEFAULT_BLOCK_SIZE, true, buf ->
+                    read(payloadPos, buf));
+            return new FreeListNode(buffer.getLong(), buffer.getLong());
 		} catch(Exception ie) {
 			throw new TablespaceManagerException(ie);
 		}
 	}
 
-	private void putFreeBlock(long payloadPos, FreeListNode node) {
-		try {
-			io.seek(payloadPos);
-			io.writeLong(node.prev);
-			io.writeLong(node.next);
-		} catch(Exception ie) {
-			throw new TablespaceManagerException(ie);
-		}
+    private void putFreeBlock(long payloadPos, FreeListNode node) {
+        ByteBuffer buffer = getByteBuffer(DEFAULT_BLOCK_SIZE, true, buf -> {
+            buf.putLong(node.prev);
+            buf.putLong(node.next);
+        });
+        write(payloadPos, buffer);
 	}
 
 	private long getPrevFreeBlockPos(long payloadPos) {
@@ -258,19 +295,10 @@ public class SingleTablespaceManager implements TablespaceManager {
 	
 	private long increaseFileSize(long size) {   //like sbrk()
 		try {
-			long oldPos = io.length();
-			if (size == 0)
-				return oldPos;
-	
-			long pos = oldPos + size - 1;
-			try {
-				io.seek(pos);
-				io.writeByte(0);
-			} catch (IOException ie) {
-				throw new TablespaceManagerException(ie);
-			}
-			
-			return oldPos;
+            long oldSize = channel.size();
+			if (size == 0) return oldSize;
+            write(oldSize + size - 1, ByteBuffer.wrap(new byte[]{0}));
+			return oldSize;
 		} catch(Exception ioe) {
 			throw new TablespaceManagerException(ioe);
 		}
@@ -514,14 +542,10 @@ public class SingleTablespaceManager implements TablespaceManager {
 	public byte[] readBlock(long blockPos) {
 		int size = getBlockSize(blockPos) - BLOCK_OVERHEAD_SIZE;
 		byte[] payload = new byte[size];
-		
-		try {
-			io.seek(blockPos);
-			io.read(payload);
-			return payload;
-		} catch (IOException ioe) {
-			throw new TablespaceManagerException(ioe);
-		}
+
+        ByteBuffer buffer = getByteBuffer(size, true, buf -> read(blockPos, buf));
+        buffer.get(payload);
+        return payload;
 	}
 	
 	public void writeBlock(long blockPos, byte[] payload) throws InsufficientPayloadSpaceException {
@@ -529,18 +553,13 @@ public class SingleTablespaceManager implements TablespaceManager {
 		if (size < payload.length) {
 			throw new InsufficientPayloadSpaceException("The size(" + payload.length + ") of the payload to be written is larger than that(" +  size + ") of the target block.");
 		}
-		
-		try {
-			io.seek(blockPos);
-			io.write(payload);
-		} catch (IOException ioe) {
-			throw new TablespaceManagerException(ioe);
-		}
+
+        write(blockPos, ByteBuffer.wrap(payload));
 	}
 	
 	public void close() {
 		try {
-			io.close();
+			channel.close();
 		} catch (IOException ioe) {
 			throw new TablespaceManagerException(ioe);
 		}

@@ -1,8 +1,8 @@
 package onthego.database.core.index;
 
-import onthego.database.core.tablespace.manager.SingleTablespaceManager;
+import onthego.database.core.tablespace.manager.StandardTablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManager;
-import onthego.database.core.tablespace.meta.SingleTablespaceHeader;
+import onthego.database.core.tablespace.meta.StandardTablespaceHeader;
 import onthego.database.core.tablespace.meta.TablespaceHeader;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 public class BTreeIndexTest {
 	
-	private static final int MAX_KEY_VALUE = 20;
+	private static final int MAX_KEY_VALUE = 900;
 	
 	private static final int MIN_KEY_VALUE = 1;
 	
@@ -64,7 +64,7 @@ public class BTreeIndexTest {
 	private void createSingleTablespace() throws IOException {
 		removeSingleTablespace();
 		
-		TablespaceHeader tsHeader = new SingleTablespaceHeader.Builder()
+		TablespaceHeader tsHeader = new StandardTablespaceHeader.Builder()
 										.magic(MAGIC)
 										.chunkSize(16)
 										.crc(10)
@@ -75,7 +75,7 @@ public class BTreeIndexTest {
 										.recordCount(0)
 										.build();
 		
-		tsManager = SingleTablespaceManager.create(TABLESPACE_PATH, tsHeader);
+		tsManager = StandardTablespaceManager.create(TABLESPACE_PATH, tsHeader);
 	}
 
 	private void removeSingleTablespace() {

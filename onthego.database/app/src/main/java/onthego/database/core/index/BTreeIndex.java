@@ -247,6 +247,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 			
 			return node;
 		} catch(Exception e) {
+            e.printStackTrace();
 			throw new BTreeIndexException(e);
 		}
 	}

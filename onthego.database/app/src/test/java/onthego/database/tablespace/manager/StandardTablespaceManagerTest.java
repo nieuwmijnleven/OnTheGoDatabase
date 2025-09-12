@@ -17,10 +17,10 @@ import onthego.database.core.exception.InsufficientPayloadSpaceException;
 import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.table.meta.TypeConstants;
 import onthego.database.core.table.meta.Types;
-import onthego.database.core.tablespace.manager.SingleTablespaceManager;
+import onthego.database.core.tablespace.manager.StandardTablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManagerException;
-import onthego.database.core.tablespace.meta.SingleTablespaceHeader;
+import onthego.database.core.tablespace.meta.StandardTablespaceHeader;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
 import onthego.database.core.tablespace.meta.TablespaceHeader;
 import org.junit.jupiter.api.AfterAll;
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @TestMethodOrder(MethodOrderer.Alphanumeric.class)
-public class SingleTablespaceManagerTest {
+public class StandardTablespaceManagerTest {
 	
 	private static final byte[] MAGIC = {0x11, 0x10, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04};
 
@@ -60,7 +60,7 @@ public class SingleTablespaceManagerTest {
 
 	private static void createSingleTablespace() throws IOException {
 		removeSingleTablespace();
-		TablespaceHeader tsHeader = new SingleTablespaceHeader.Builder()
+		TablespaceHeader tsHeader = new StandardTablespaceHeader.Builder()
 										.magic(MAGIC)
 										.chunkSize(4)
 										.crc(10)
@@ -71,7 +71,7 @@ public class SingleTablespaceManagerTest {
 										.recordCount(0)
 										.build();
 		
-		tsManager = SingleTablespaceManager.create("./dummytable.db", tsHeader);
+		tsManager = StandardTablespaceManager.create("./dummytable.db", tsHeader);
 	}
 
 	private static void removeSingleTablespace() {
@@ -81,7 +81,7 @@ public class SingleTablespaceManagerTest {
 		}
 	}
 	
-	private TableMetaInfo generateTableMetaInfo() {
+	private TableMetaInfo generateTableMetaInfo() throws IOException {
 		String tableName = "product";
 		
 		List<ColumnMeta> columnList = new ArrayList<>();
@@ -98,7 +98,7 @@ public class SingleTablespaceManagerTest {
 	@Test
 	public void A_Test_Create() {
 		try (RandomAccessFile io = new RandomAccessFile("./dummytable.db", "r")) {
-			byte[] writtenMagic = new byte[SingleTablespaceHeader.MAGIC_NUMBER_SIZE];
+			byte[] writtenMagic = new byte[StandardTablespaceHeader.MAGIC_NUMBER_SIZE];
 			io.read(writtenMagic);
 			
 			assertArrayEquals(MAGIC, writtenMagic);
@@ -118,7 +118,7 @@ public class SingleTablespaceManagerTest {
 	public void B_Test_Load() throws IOException {
 		generateTableMetaInfo();
 		
-		TablespaceManager tsManager = SingleTablespaceManager.load("./dummytable.db");
+		TablespaceManager tsManager = StandardTablespaceManager.load("./dummytable.db");
 		tsManager.close();
 		
 		TablespaceHeader tsHeader = tsManager.getHeader();
@@ -133,7 +133,7 @@ public class SingleTablespaceManagerTest {
 	}
 	
 	@Test
-	public void C_Test_CreateTableMetaInfo() {
+	public void C_Test_CreateTableMetaInfo() throws IOException {
 		TableMetaInfo tableMetaInfo = generateTableMetaInfo();
 		
 		long tableMetaInfoPos = tsManager.getHeader().getTableMetaInfoPos();
@@ -156,7 +156,7 @@ public class SingleTablespaceManagerTest {
 	}
 
 	@Test
-	public void D_Test_LoadTableMetaInfo() {
+	public void D_Test_LoadTableMetaInfo() throws IOException {
 		TableMetaInfo generatedTableMetaInfo = generateTableMetaInfo();
 		
 		tsManager.loadTableInfoEntry();
@@ -261,7 +261,7 @@ public class SingleTablespaceManagerTest {
 		tsManager.saveHeader();
 		
 		try (RandomAccessFile io = new RandomAccessFile("./dummytable.db", "r")) {
-			byte[] writtenMagic = new byte[SingleTablespaceHeader.MAGIC_NUMBER_SIZE];
+			byte[] writtenMagic = new byte[StandardTablespaceHeader.MAGIC_NUMBER_SIZE];
 			io.read(writtenMagic);
 			
 			assertArrayEquals(tsManager.getHeader().getMagic(), writtenMagic);

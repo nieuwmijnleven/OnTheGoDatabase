@@ -1,6 +1,6 @@
 package onthego.database.core.tablespace.meta;
 
-public class SingleTablespaceHeader implements TablespaceHeader {
+public class StandardTablespaceHeader implements TablespaceHeader {
 	
 	public static final int MAGIC_NUMBER_SIZE = 8;
 	
@@ -91,11 +91,11 @@ public class SingleTablespaceHeader implements TablespaceHeader {
 		}
 		
 		public TablespaceHeader build() {
-			return new SingleTablespaceHeader(this);
+			return new StandardTablespaceHeader(this);
 		}
 	}
 	
-	protected SingleTablespaceHeader(Builder builder) {
+	protected StandardTablespaceHeader(Builder builder) {
 		this.magic = builder.magic;
 		this.chunkSize = builder.chunkSize;
 		this.crc = builder.crc;
@@ -108,7 +108,7 @@ public class SingleTablespaceHeader implements TablespaceHeader {
 	}
 	
 	//copy constructor
-	public SingleTablespaceHeader(TablespaceHeader tsHeader) {
+	public StandardTablespaceHeader(TablespaceHeader tsHeader) {
 		this.magic = tsHeader.getMagic();
 		this.chunkSize = tsHeader.getChunkSize();
 		this.crc = tsHeader.getCrc();

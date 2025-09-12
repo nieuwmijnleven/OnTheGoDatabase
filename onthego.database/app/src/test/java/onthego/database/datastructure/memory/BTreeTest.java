@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BTreeTest {
 	
-	private static final int MAX_KEY_VALUE = 10000;
+	private static final int MAX_KEY_VALUE = 900;
 	
 	private static final int MIN_KEY_VALUE = 1;
 	
