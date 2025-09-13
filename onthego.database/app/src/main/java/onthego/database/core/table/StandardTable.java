@@ -1,26 +1,29 @@
 package onthego.database.core.table;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import onthego.database.core.database.DatabaseException;
 import onthego.database.core.index.BTreeIndex;
+import onthego.database.core.serializer.LongSerializer;
 import onthego.database.core.table.meta.ColumnMeta;
 import onthego.database.core.tablespace.manager.StandardTablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 import onthego.database.core.tablespace.meta.StandardTablespaceHeader;
 import onthego.database.core.tablespace.meta.TableMetaInfo;
 import onthego.database.core.tablespace.meta.TablespaceHeader;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class StandardTable implements Table {
 	
@@ -43,7 +46,7 @@ public class StandardTable implements Table {
 										.tableMetaInfo(tableMetaInfo)
 										.build();
 		this.tsManager = StandardTablespaceManager.create(path + File.separator + tableName + ".db", tsHeader);
-		this.clusteredIndex = new BTreeIndex<>(128, tsManager);
+		this.clusteredIndex = new BTreeIndex<>(128, new LongSerializer(), tsManager);
 		this.tableName = tableName;
 		this.transactionStack = new Stack<>();
 	}
@@ -51,7 +54,7 @@ public class StandardTable implements Table {
 	// To load a standard table
 	private StandardTable(String path, String tableName) throws IOException {
 		this.tsManager = StandardTablespaceManager.load(path + File.separator + tableName + ".db");
-		this.clusteredIndex = new BTreeIndex<>(128, tsManager);
+		this.clusteredIndex = new BTreeIndex<>(128, new LongSerializer(), tsManager);
 		this.tableName = tableName;
 		this.transactionStack = new Stack<>();
 	}
@@ -86,10 +89,12 @@ public class StandardTable implements Table {
 		if (transactionStack.isEmpty()) {
 			throw new IllegalStateException("There is no BEGIN for ROLLBACK");
 		}
-		
+
+        Map<Long, Long> recordPosTracker = new HashMap<>();
 		do {
 			List<Undo> transactionList = transactionStack.pop();
 			for (Undo undo : transactionList) {
+                undo.setRecordPosTracker(recordPosTracker);
 				undo.execute();
 			}
 		} while (all && !transactionStack.isEmpty());
@@ -154,7 +159,8 @@ public class StandardTable implements Table {
 			return selectColumnRealIndexList;
 		}
 	}
-	
+
+    //<column_count><offset_of_payloads><length_of_columndata><...><columndata1><...>
 	@Override
 	public long insert(Map<ColumnMeta,String> values) {
 		int recordSize = Short.BYTES * (1 + values.size());
@@ -247,14 +253,24 @@ public class StandardTable implements Table {
 	
 	private final class UndoInsert implements Undo {
 		private final long recordPos;
-		
+        private Map<Long, Long> recordPosTracker;
+
 		public UndoInsert(long recordPos) {
 			this.recordPos = recordPos;
 		}
 
-		@Override
+        @Override
+        public void setRecordPosTracker(Map<Long, Long> recordPosTracker) {
+            this.recordPosTracker = recordPosTracker;
+        }
+
+        @Override
 		public void execute() {
-			deleteRecord(this.recordPos);
+            if (this.recordPosTracker != null && this.recordPosTracker.containsKey(this.recordPos)) {
+                deleteRecord(this.recordPosTracker.get(this.recordPos));
+            } else {
+                deleteRecord(this.recordPos);
+            }
 		}
 	}
 	
@@ -266,6 +282,8 @@ public class StandardTable implements Table {
 		private final int columnIndex;
 		
 		private final String oldValue;
+
+        private Map<Long, Long> recordPosTracker;
 		
 		public UndoUpdate(long recordPos, byte[] record, int columnIndex, String oldValue) {
 			this.recordPos = recordPos;
@@ -274,23 +292,41 @@ public class StandardTable implements Table {
 			this.oldValue = oldValue;
 		}
 
-		@Override
+        @Override
+        public void setRecordPosTracker(Map<Long, Long> recordPosTracker) {
+            this.recordPosTracker = recordPosTracker;
+        }
+
+        @Override
 		public void execute() {
 			StandardTableUtil.writeColumnData(record, columnIndex, oldValue);
-			tsManager.writeBlock(recordPos, record);
+            if (this.recordPosTracker != null && this.recordPosTracker.containsKey(this.recordPos)) {
+                tsManager.writeBlock(this.recordPosTracker.get(this.recordPos), record);
+            } else {
+                tsManager.writeBlock(recordPos, record);
+            }
 		}
 	}
 	
 	private final class UndoDelete implements Undo {
+        private final long recordPos;
 		private final byte[] record;
-		
-		public UndoDelete(byte[] record) {
+        private Map<Long, Long> recordPosTracker;
+
+		public UndoDelete(long recordPos, byte[] record) {
+            this.recordPos = recordPos;
 			this.record = record;
 		}
 
-		@Override
+        @Override
+        public void setRecordPosTracker(Map<Long, Long> recordPosTracker) {
+            this.recordPosTracker = recordPosTracker;
+        }
+
+        @Override
 		public void execute() {
-			insertRecord(record);
+			long newRecordPos = insertRecord(record);
+            if (recordPosTracker != null) recordPosTracker.put(recordPos, newRecordPos);
 		}
 	}
 	
@@ -395,7 +431,7 @@ public class StandardTable implements Table {
 			byte[] newRecord = StandardTableUtil.writeColumnData(record, columnIndex, newValue);
 			if (newRecord.length != record.length) {
 				deleteRecord(this.recordPos);
-				addToTransactionStack(new UndoDelete(record));
+				addToTransactionStack(new UndoDelete(this.recordPos, record));
 				
 				this.recordPos = insertRecord(newRecord);
 				this.record = newRecord;
@@ -411,7 +447,7 @@ public class StandardTable implements Table {
 		@Override
 		public void delete() {
 			deleteRecord(this.recordPos);
-			addToTransactionStack(new UndoDelete(record));
+			addToTransactionStack(new UndoDelete(this.recordPos, record));
 		}
 	}
 }
