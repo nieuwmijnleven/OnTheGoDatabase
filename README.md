@@ -6,8 +6,8 @@ Er zijn veel dingen die ik zouden moeten doen om OnTheGo database een authentiek
 
 ## Vereisten
 
-1. Above Java 8 
-2. Maven
+1. Above Java 17
+2. Gradle
 
 ## Functionaliteiten
 
@@ -15,7 +15,7 @@ Er zijn veel dingen die ik zouden moeten doen om OnTheGo database een authentiek
 2. DDL(create, drop), DML(select, insert, update, delete) Support 
 3. JDBC Driver Support
 
-## Het Verloop van Uitvoering
+## Uitvoeringstappen
 ### 1. De Github-Opslagplaats van OnTheGo Database Project Klonen
 ```
 $> git clone https://github.com/nieuwmijnleven/OnTheGoDatabase.git
@@ -23,11 +23,11 @@ $> cd ./OnTheGoDatabase/onthego.database
 ```
 ### 2. OnTheGo Database Opbowen
 ```
-$> mvn package
+$> ./gradlew clean build
 ```
 ### 3. OnTheGo Database Starten
 ```
-$> java -jar onthego_database.jar
+$> java -jar ./onthego.database/app/build/libs/app-1.0.0.jar
 ```
 
 ## Schermafbeelden
