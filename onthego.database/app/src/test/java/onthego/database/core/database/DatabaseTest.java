@@ -403,9 +403,15 @@ public class DatabaseTest {
 		query = "select * from product";
 		resultTable = database.execute(query);
 		cursor = resultTable.getCursor();
+
+        assertTrue(cursor.next());
+        Iterator<String> it = cursor.getRecord();
+        assertEquals("100", it.next());
+        assertEquals("smartphone", it.next());
+        assertEquals("200.1", it.next());
 		
 		assertTrue(cursor.next());
-		Iterator<String> it = cursor.getRecord();
+		it = cursor.getRecord();
 		assertEquals("200", it.next());
 		assertEquals("tablet/pad", it.next());
 		assertEquals("400.2", it.next());
@@ -415,13 +421,7 @@ public class DatabaseTest {
 		assertEquals("300", it.next());
 		assertEquals("notebook", it.next());
 		assertEquals("600.3", it.next());
-		
-		assertTrue(cursor.next());
-		it = cursor.getRecord();
-		assertEquals("100", it.next());
-		assertEquals("smartphone", it.next());
-		assertEquals("200.1", it.next());
-		
+
 		query = "update product set serial_no = 101\n"
 			  + "where name = 'smartphone' and price = 200.1";
 		database.execute(query);
@@ -440,21 +440,21 @@ public class DatabaseTest {
 		
 		assertTrue(cursor.next());
 		it = cursor.getRecord();
-		assertEquals("300", it.next());
-		assertEquals("notebook", it.next());
-		assertEquals("800.3", it.next());
+        assertEquals("101", it.next());
+        assertEquals("smartphone", it.next());
+        assertEquals("200.1", it.next());
+
+        assertTrue(cursor.next());
+        it = cursor.getRecord();
+        assertEquals("300", it.next());
+        assertEquals("notebook", it.next());
+        assertEquals("800.3", it.next());
 		
 		assertTrue(cursor.next());
 		it = cursor.getRecord();
 		assertEquals("200", it.next());
 		assertEquals("the-state-of-art tablet/pad", it.next());
 		assertEquals("400.2", it.next());
-		
-		assertTrue(cursor.next());
-		it = cursor.getRecord();
-		assertEquals("101", it.next());
-		assertEquals("smartphone", it.next());
-		assertEquals("200.1", it.next());
 		
 		query = "delete from product where serial_no = 200";
 		database.execute(query);
@@ -465,15 +465,15 @@ public class DatabaseTest {
 		
 		assertTrue(cursor.next());
 		it = cursor.getRecord();
-		assertEquals("300", it.next());
-		assertEquals("notebook", it.next());
-		assertEquals("800.3", it.next());
+        assertEquals("101", it.next());
+        assertEquals("smartphone", it.next());
+        assertEquals("200.1", it.next());
 		
 		assertTrue(cursor.next());
 		it = cursor.getRecord();
-		assertEquals("101", it.next());
-		assertEquals("smartphone", it.next());
-		assertEquals("200.1", it.next());
+        assertEquals("300", it.next());
+        assertEquals("notebook", it.next());
+        assertEquals("800.3", it.next());
 		
 		database.rollback();
 		
