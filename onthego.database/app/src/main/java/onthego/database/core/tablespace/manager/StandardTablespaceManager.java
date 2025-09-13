@@ -20,7 +20,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
-import static onthego.database.util.IOUtils.getByteBuffer;
+import static onthego.database.util.IOUtils.*;
 
 public class StandardTablespaceManager implements TablespaceManager {
 

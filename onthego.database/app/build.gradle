@@ -11,6 +11,11 @@ plugins {
     id 'application'
 }
 
+group = 'onthego.database'
+version = '1.0.0'
+
+sourceCompatibility = '17'
+
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
@@ -32,6 +37,20 @@ dependencies {
 application {
     // Define the main class for the application.
     mainClass = 'onthego.database.console.SimpleConsole'
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': application.mainClass.get()
+        )
+    }
+
+    // 필요한 경우, 의존성 JAR들을 포함하는 fat JAR 생성
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.named('test') {
