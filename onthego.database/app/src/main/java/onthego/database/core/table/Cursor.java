@@ -29,4 +29,6 @@ public interface Cursor {
 	String update(String columnName, String newValue);
 	
 	void delete();
+
+    void close();
 }

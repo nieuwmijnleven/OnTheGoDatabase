@@ -211,6 +211,7 @@ public class StandardTable implements Table {
 				++updated;
 			}
 		}
+        cursor.close();
 		return updated;
 	}
 	
@@ -224,6 +225,7 @@ public class StandardTable implements Table {
 				++deleted;
 			}
 		}
+        cursor.close();
 		return deleted;
 	}
 
@@ -339,6 +341,8 @@ public class StandardTable implements Table {
 		private long recordPos;
 		
 		private byte[] record;
+
+        private final List<Long> deletedRecordPosList = new ArrayList<>();
 		
 		public StandardTableCursor(List<ColumnMeta> selectColumn) {
 			this.selectColumn = selectColumn;
@@ -447,7 +451,18 @@ public class StandardTable implements Table {
 		@Override
 		public void delete() {
 			deleteRecord(this.recordPos);
-			addToTransactionStack(new UndoDelete(this.recordPos, record));
+            addToTransactionStack(new UndoDelete(this.recordPos, record));
 		}
-	}
+
+        @Override
+        public void close() {
+            deletedRecordPosList.forEach(recordPos -> clusteredIndex.delete(recordPos));
+        }
+
+        private void deleteRecord(long recordPos) {
+            tsManager.free(recordPos);
+            tsManager.decreaseRecordCount();
+            deletedRecordPosList.add(recordPos);
+        }
+    }
 }

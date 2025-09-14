@@ -192,5 +192,10 @@ public final class ResultTable implements Table {
 		public void delete() {
 			throw new UnsupportedOperationException();
 		}
-	}
+
+        @Override
+        public void close() {
+
+        }
+    }
 }
