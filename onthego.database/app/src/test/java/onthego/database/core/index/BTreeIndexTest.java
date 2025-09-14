@@ -1,5 +1,6 @@
 package onthego.database.core.index;
 
+import onthego.database.core.serializer.IntegerSerializer;
 import onthego.database.core.tablespace.manager.StandardTablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 import onthego.database.core.tablespace.meta.StandardTablespaceHeader;
@@ -41,7 +42,7 @@ public class BTreeIndexTest {
 	private void createBTreeIndex() {
 		try {
 			createSingleTablespace();
-			btree = new BTreeIndex<>(BTREE_THRESHOLD, tsManager);
+			btree = new BTreeIndex<>(BTREE_THRESHOLD, new IntegerSerializer(), tsManager);
 		} catch(IOException ioe) {
 			fail("failed to create a btree index.");
 		}
@@ -50,7 +51,7 @@ public class BTreeIndexTest {
 	private void createBTreeIndexWithData() {
 		try {
 			createSingleTablespace();
-			btree = new BTreeIndex<>(BTREE_THRESHOLD, tsManager);
+			btree = new BTreeIndex<>(BTREE_THRESHOLD, new IntegerSerializer(), tsManager);
 			for (int key = MIN_KEY_VALUE; key <= MAX_KEY_VALUE; ++key) {
 				btree.insert(key, key + 1);
 			}

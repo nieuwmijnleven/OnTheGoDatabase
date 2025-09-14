@@ -1,9 +1,13 @@
 package onthego.database.core.index;
 
-import static java.util.stream.Collectors.joining;
+import onthego.database.core.exception.InsufficientPayloadSpaceException;
+import onthego.database.core.serializer.Serializer;
+import onthego.database.core.tablespace.manager.TablespaceManager;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -16,8 +20,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Stack;
 
-import onthego.database.core.exception.InsufficientPayloadSpaceException;
-import onthego.database.core.tablespace.manager.TablespaceManager;
+import static java.util.stream.Collectors.joining;
 
 public class BTreeIndex<T extends Comparable<? super T>> {
 	
@@ -140,24 +143,27 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 	private final int threshold;
 	
 	private Comparator<T> comparator;
+
+    private final Serializer<T> serializer;
 	
 	private final TablespaceManager tsManager;
 	
 	private Node<T> root;
 	
 	private int estimatedNodeSize;
-	
-	public BTreeIndex(int threshold, TablespaceManager tsManager) {
-		this.threshold = threshold;
-		this.comparator = Comparator.naturalOrder();
-		this.tsManager = tsManager;
-		this.estimatedNodeSize = estimateNodeSize();
+
+	public BTreeIndex(int threshold, Serializer<T> serializer, TablespaceManager tsManager) {
+		this(threshold, serializer, Comparator.naturalOrder(), tsManager);
 		initialize();
 	}
 	
-	public BTreeIndex(int threshold, Comparator<T> comparator, TablespaceManager tsManager) {
-		this(threshold, tsManager);
-		this.comparator = comparator;
+	public BTreeIndex(int threshold, Serializer<T> serializer, Comparator<T> comparator, TablespaceManager tsManager) {
+        this.threshold = threshold;
+        this.serializer = serializer;
+        this.comparator = comparator;
+        this.tsManager = tsManager;
+        this.estimatedNodeSize = estimateNodeSize();
+        initialize();
 	}
 	
 	private void initialize() {
@@ -170,34 +176,63 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		}
 	}
 	
-	private byte[] generatePayload(Node<T> node) {
-		try (ByteArrayOutputStream bout = new ByteArrayOutputStream();
-			 ObjectOutputStream out = new ObjectOutputStream(bout)) {
-			out.writeBoolean(node.isLeaf);
-			out.writeInt(node.n);
-			
-			for (int i = 0; i < node.key.length; ++i) {
-				try {
-					out.writeObject(node.key[i]);
-				} catch (Exception e) {
-					throw new BTreeIndexException(e);
-				}
-			}
-			
-			for (int i = 0; i < node.recordPos.length; ++i) {
-				out.writeLong(node.recordPos[i]);
-			}
-			
-			for (int i = 0; i < node.childPos.length; ++i) {
-				out.writeLong(node.childPos[i]);
-			}
-			
-			out.flush();
-			return bout.toByteArray();
-		} catch(IOException ioe) {
-			throw new BTreeIndexException(ioe);
-		}
-	}
+//	private byte[] generatePayload(Node<T> node) {
+//		try (ByteArrayOutputStream bout = new ByteArrayOutputStream();
+//			 ObjectOutputStream out = new ObjectOutputStream(bout)) {
+//			out.writeBoolean(node.isLeaf);
+//			out.writeInt(node.n);
+//
+//			for (int i = 0; i < node.key.length; ++i) {
+//				try {
+//					out.writeObject(node.key[i]);
+//				} catch (Exception e) {
+//					throw new BTreeIndexException(e);
+//				}
+//			}
+//
+//			for (int i = 0; i < node.recordPos.length; ++i) {
+//				out.writeLong(node.recordPos[i]);
+//			}
+//
+//			for (int i = 0; i < node.childPos.length; ++i) {
+//				out.writeLong(node.childPos[i]);
+//			}
+//
+//			out.flush();
+//			return bout.toByteArray();
+//		} catch(IOException ioe) {
+//			throw new BTreeIndexException(ioe);
+//		}
+//	}
+
+    private byte[] generatePayload(Node<T> node) {
+        try (ByteArrayOutputStream bout = new ByteArrayOutputStream(); DataOutputStream out = new DataOutputStream(bout)) {
+            out.writeBoolean(node.isLeaf);
+            out.writeInt(node.n);
+
+            for (int i = 0; i < node.key.length; ++i) {
+//                try {
+                    serializer.write(out, node.key[i]);
+//                    out.writeObject(node.key[i]);
+//                } catch (Exception e) {
+//                    throw new BTreeIndexException(e);
+//                }
+            }
+
+            for (int i = 0; i < node.recordPos.length; ++i) {
+                out.writeLong(node.recordPos[i]);
+            }
+
+            for (int i = 0; i < node.childPos.length; ++i) {
+                out.writeLong(node.childPos[i]);
+            }
+
+            out.flush();
+            return bout.toByteArray();
+        } catch(IOException ioe) {
+            throw new BTreeIndexException(ioe);
+        }
+    }
 	
 	private int estimateNodeSize() {
 		return generatePayload(new Node<T>(threshold, 0)).length;
@@ -228,13 +263,13 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 	
 	private Node<T> loadNode(long pos) {
 		try (ByteArrayInputStream bin = new ByteArrayInputStream(tsManager.readBlock(pos));
-			 ObjectInputStream in = new ObjectInputStream(bin)) {
+			 DataInputStream in = new DataInputStream(bin)) {
 			Node<T> node = new Node<T>(threshold, pos);
 			node.isLeaf = in.readBoolean();
 			node.n = in.readInt();
 			
 			for (int i = 0; i < node.key.length; ++i) {
-				node.key[i] = (T)in.readObject();
+				node.key[i] = serializer.read(in);
 			}
 			
 			for (int i = 0; i < node.recordPos.length; ++i) {
