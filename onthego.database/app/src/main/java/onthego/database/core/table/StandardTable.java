@@ -37,7 +37,7 @@ public class StandardTable implements Table {
 	
 	private Map<ColumnMeta, BTreeIndex<String>> columnIndexMap;
 	
-	private Stack<List<Undo>> transactionStack;
+	private Stack<List<RecordTrackableUndo>> transactionStack;
 	
 	// To create a standard table
 	private StandardTable(String path, String tableName, TableMetaInfo tableMetaInfo) throws IOException {
@@ -67,9 +67,9 @@ public class StandardTable implements Table {
 		return new StandardTable(path, tableName);
 	}
 	
-	private void addToTransactionStack(Undo undo) {
+	private void addToTransactionStack(RecordTrackableUndo undo) {
 		if (!transactionStack.isEmpty()) {
-			List<Undo> transactionList = transactionStack.peek();
+			List<RecordTrackableUndo> transactionList = transactionStack.peek();
 			transactionList.add(0, undo);
 		}
 	}
@@ -81,7 +81,7 @@ public class StandardTable implements Table {
 	
 	@Override
 	public void begin() {
-		transactionStack.push(new LinkedList<Undo>());
+		transactionStack.push(new LinkedList<RecordTrackableUndo>());
 	}
 	
 	@Override
@@ -90,11 +90,11 @@ public class StandardTable implements Table {
 			throw new IllegalStateException("There is no BEGIN for ROLLBACK");
 		}
 
-        Map<Long, Long> recordPosTracker = new HashMap<>();
+        UndoRecordTracker<Long> recordTracker = UndoRecordTracker.create();
 		do {
-			List<Undo> transactionList = transactionStack.pop();
-			for (Undo undo : transactionList) {
-                undo.setRecordPosTracker(recordPosTracker);
+			List<RecordTrackableUndo> transactionList = transactionStack.pop();
+			for (RecordTrackableUndo undo : transactionList) {
+                undo.setRecordPosTracker(recordTracker);
 				undo.execute();
 			}
 		} while (all && !transactionStack.isEmpty());
@@ -109,9 +109,9 @@ public class StandardTable implements Table {
 		if (all) {
 			this.transactionStack = new Stack<>();
 		} else {
-			List<Undo> transactionList = transactionStack.pop();
+			List<RecordTrackableUndo> transactionList = transactionStack.pop();
 			if (!transactionStack.isEmpty()) {
-				List<Undo> higherTransactionList = transactionStack.peek();
+				List<RecordTrackableUndo> higherTransactionList = transactionStack.peek();
 				higherTransactionList.addAll(0, transactionList);
 			}
 		}
@@ -253,30 +253,32 @@ public class StandardTable implements Table {
 		return tsManager.getHeader().getTableMetaInfo().getColumnIndex(name);
 	}
 	
-	private final class UndoInsert implements Undo {
+	private final class UndoInsert implements RecordTrackableUndo {
 		private final long recordPos;
-        private Map<Long, Long> recordPosTracker;
+        private RecordTracker<Long> recordTracker;
 
 		public UndoInsert(long recordPos) {
 			this.recordPos = recordPos;
 		}
 
         @Override
-        public void setRecordPosTracker(Map<Long, Long> recordPosTracker) {
-            this.recordPosTracker = recordPosTracker;
+        public void setRecordPosTracker(RecordTracker<Long> recordTracker) {
+            this.recordTracker = recordTracker;
         }
 
         @Override
 		public void execute() {
-            if (this.recordPosTracker != null && this.recordPosTracker.containsKey(this.recordPos)) {
-                deleteRecord(this.recordPosTracker.get(this.recordPos));
-            } else {
-                deleteRecord(this.recordPos);
+            if (recordTracker == null) {
+                throw new RecordTrackerException("RecordTracker must be set before executing undo.");
             }
+
+            recordTracker.getNewPosition(recordPos).ifPresentOrElse( newPosition -> deleteRecord(newPosition),
+                    () -> deleteRecord(recordPos)
+            );
 		}
 	}
 	
-	private final class UndoUpdate implements Undo {
+	private final class UndoUpdate implements RecordTrackableUndo {
 		private final long recordPos;
 		
 		private final byte[] record;
@@ -285,7 +287,7 @@ public class StandardTable implements Table {
 		
 		private final String oldValue;
 
-        private Map<Long, Long> recordPosTracker;
+        private RecordTracker<Long> recordTracker;
 		
 		public UndoUpdate(long recordPos, byte[] record, int columnIndex, String oldValue) {
 			this.recordPos = recordPos;
@@ -295,25 +297,28 @@ public class StandardTable implements Table {
 		}
 
         @Override
-        public void setRecordPosTracker(Map<Long, Long> recordPosTracker) {
-            this.recordPosTracker = recordPosTracker;
+        public void setRecordPosTracker(RecordTracker<Long> recordTracker) {
+            this.recordTracker = recordTracker;
         }
 
         @Override
 		public void execute() {
-			StandardTableUtil.writeColumnData(record, columnIndex, oldValue);
-            if (this.recordPosTracker != null && this.recordPosTracker.containsKey(this.recordPos)) {
-                tsManager.writeBlock(this.recordPosTracker.get(this.recordPos), record);
-            } else {
-                tsManager.writeBlock(recordPos, record);
+            if (recordTracker == null) {
+                throw new RecordTrackerException("RecordTracker must be set before executing undo.");
             }
+
+			StandardTableUtil.writeColumnData(record, columnIndex, oldValue);
+
+            recordTracker.getNewPosition(recordPos).ifPresentOrElse( newPosition -> tsManager.writeBlock(newPosition, record),
+                    () -> tsManager.writeBlock(recordPos, record)
+            );
 		}
 	}
 	
-	private final class UndoDelete implements Undo {
+	private final class UndoDelete implements RecordTrackableUndo {
         private final long recordPos;
 		private final byte[] record;
-        private Map<Long, Long> recordPosTracker;
+        private RecordTracker<Long> recordTracker;
 
 		public UndoDelete(long recordPos, byte[] record) {
             this.recordPos = recordPos;
@@ -321,14 +326,18 @@ public class StandardTable implements Table {
 		}
 
         @Override
-        public void setRecordPosTracker(Map<Long, Long> recordPosTracker) {
-            this.recordPosTracker = recordPosTracker;
+        public void setRecordPosTracker(RecordTracker<Long> recordTracker) {
+            this.recordTracker = recordTracker;
         }
 
         @Override
 		public void execute() {
+            if (recordTracker == null) {
+                throw new RecordTrackerException("RecordTracker must be set before executing undo.");
+            }
+
 			long newRecordPos = insertRecord(record);
-            if (recordPosTracker != null) recordPosTracker.put(recordPos, newRecordPos);
+            recordTracker.setNewPosition(recordPos, newRecordPos);
 		}
 	}
 	
