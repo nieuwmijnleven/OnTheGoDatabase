@@ -1,8 +1,12 @@
 # OnTheGo Database
 
-OnTheGo database is een simpel duurzame database engine. Die ondersteunt basis database operaties. Zoals DDL (create, drop database/table) en DML (select, insert, update, delete). Daarnast verstrekt dit ook de JDBC-driver die OnTheGo Database aankunt voor Java Software. De reden waarom Ik OnTheGo Database project begon is dat I heb gedacht dat een database is een goed voorbeeld om compiler en datastructuren te studeren. Verder, ik wilde iets wat handig is voor mensen maken als uitstekend softwareontwikkelaren deden. Eindelijk had ik een simpel duurzame database gemaakt en kreeg ik een diep verstand van binnenstructuren van database.  
+OnTheGo Database is ontstaan uit de wens om een eenvoudige, maar betrouwbare en duurzame database-engine te bouwen. Deze engine ondersteunt essentiële database-operaties zoals DDL (aanmaken, verwijderen van databases/tabellen) en DML (selecteren, invoegen, bijwerken, verwijderen). Bovendien wordt er een JDBC-driver meegeleverd, wat een naadloze integratie met Java-toepassingen mogelijk maakt. 
 
-Er zijn veel dingen die ik zouden moeten doen om OnTheGo database een authentieke database te maken. OnTheGo database is gebrek aan sommige funtionaliteiten. Zoals index, join, optimizer, synchronization, end network daemon. Ik denk dat dit project een bewijs van mijn zuivere enthousiasme van softwareontwikkeling is  
+De aanleiding voor dit project was mijn nieuwsgierigheid naar de interne werking van databases. Ik was ervan overtuigd dat het bouwen van een eigen database een ideaal praktijkvoorbeeld zou zijn om diepgaande kennis op te doen over compilertechnieken en datastructuren. Daarnaast werd ik geïnspireerd door toonaangevende softwareontwikkelaars om software te creëren die daadwerkelijk van waarde is voor anderen. 
+
+Na diverse iteraties stond er uiteindelijk een lichtgewicht, robuuste database waarmee ik niet alleen een functioneel product maakte, maar ook een dieper begrip ontwikkelde van hoe databases van binnen werken. 
+
+Toch is dit pas het begin. Om van OnTheGo Database een volwaardige, moderne database te maken, zijn er nog de nodige stappen te zetten. Functionaliteiten als indexering, joins, query-optimalisatie, synchronisatie en een netwerkdaemon staan nog op mijn roadmap. Ondanks deze uitdagingen ben ik trots op mijn voortgang: dit project weerspiegelt mijn oprechte passie voor softwareontwikkeling en mijn ambitie om met technologie anderen vooruit te helpen. 
 
 ## Vereisten
 
