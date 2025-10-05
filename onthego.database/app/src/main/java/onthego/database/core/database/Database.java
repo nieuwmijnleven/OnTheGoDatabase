@@ -47,6 +47,7 @@ public final class Database {
 		try {
 			loadTables();
 		} catch (Exception e) {
+            e.printStackTrace();
 			throw new DatabaseException(e);
 		}
 	}

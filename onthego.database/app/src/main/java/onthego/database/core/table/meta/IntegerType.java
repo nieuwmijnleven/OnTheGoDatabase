@@ -1,5 +1,10 @@
 package onthego.database.core.table.meta;
 
+import onthego.database.core.serializer.IntegerSerializer;
+import onthego.database.core.serializer.Serializer;
+
+import java.util.Comparator;
+
 public class IntegerType extends Type {
 
 	public IntegerType(int length) {
@@ -16,4 +21,19 @@ public class IntegerType extends Type {
 			throw new TypeException("The type length(" + length + ") is not valid.");
 		}
 	}
+
+    @Override
+    public Serializer<Object> getSerializer() {
+        return new IntegerSerializer();
+    }
+
+    @Override
+    public Comparator<Object> getComparator() {
+        return Comparator.comparingInt(Integer.class::cast);
+    }
+
+    @Override
+    public Object cast(String obj) {
+        return Integer.parseInt(obj);
+    }
 }

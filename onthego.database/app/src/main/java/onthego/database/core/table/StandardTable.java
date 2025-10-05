@@ -2,8 +2,10 @@ package onthego.database.core.table;
 
 import onthego.database.core.database.DatabaseException;
 import onthego.database.core.index.BTreeIndex;
+import onthego.database.core.index.BTreeRecordInfo;
 import onthego.database.core.serializer.LongSerializer;
 import onthego.database.core.table.meta.ColumnMeta;
+import onthego.database.core.table.meta.Type;
 import onthego.database.core.tablespace.manager.StandardTablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 import onthego.database.core.tablespace.meta.StandardTablespaceHeader;
@@ -15,27 +17,23 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Stack;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class StandardTable implements Table {
-	
-	public static final String TABLESPACE_DIRECTORY_PATH = "./";
-	
+
 	private final String tableName;
 	
 	private final TablespaceManager tsManager;
 	
-	private final BTreeIndex<Long> clusteredIndex;
-	
-	private Map<ColumnMeta, BTreeIndex<String>> columnIndexMap;
+	private final BTreeIndex<Object> clusteredIndex;
 	
 	private Stack<List<RecordTrackableUndo>> transactionStack;
 	
@@ -46,7 +44,15 @@ public class StandardTable implements Table {
 										.tableMetaInfo(tableMetaInfo)
 										.build();
 		this.tsManager = StandardTablespaceManager.create(path + File.separator + tableName + ".db", tsHeader);
-		this.clusteredIndex = new BTreeIndex<>(128, new LongSerializer(), tsManager);
+
+        Optional<ColumnMeta> keyColumn = tableMetaInfo.getColumnList().stream().filter(ColumnMeta::isKey).findFirst();
+        if (keyColumn.isPresent()) {
+            Type type = keyColumn.get().getType();
+            this.clusteredIndex = new BTreeIndex<>(128, type.getSerializer(), type.getComparator(), tsManager);
+        } else {
+            this.clusteredIndex = new BTreeIndex<>(128, new LongSerializer(), Comparator.comparing(Long.class::cast), tsManager);
+        }
+
 		this.tableName = tableName;
 		this.transactionStack = new Stack<>();
 	}
@@ -54,7 +60,7 @@ public class StandardTable implements Table {
 	// To load a standard table
 	private StandardTable(String path, String tableName) throws IOException {
 		this.tsManager = StandardTablespaceManager.load(path + File.separator + tableName + ".db");
-		this.clusteredIndex = new BTreeIndex<>(128, new LongSerializer(), tsManager);
+		this.clusteredIndex = new BTreeIndex<>(128, tsManager);
 		this.tableName = tableName;
 		this.transactionStack = new Stack<>();
 	}
@@ -81,7 +87,7 @@ public class StandardTable implements Table {
 	
 	@Override
 	public void begin() {
-		transactionStack.push(new LinkedList<RecordTrackableUndo>());
+		transactionStack.push(new LinkedList<>());
 	}
 	
 	@Override
@@ -117,22 +123,24 @@ public class StandardTable implements Table {
 		}
 	}
 
-	private long insertRecord(byte[] payload) {
+	private long insertRecord(Object key, byte[] payload) {
 		long recordPos = tsManager.allocate(payload.length);
 		tsManager.writeBlock(recordPos, payload);
 		tsManager.increaseRecordCount();
-		clusteredIndex.insert(recordPos, recordPos);
-		return recordPos;
+
+        key = (key != null) ? key : recordPos;
+        clusteredIndex.insert(key, recordPos);
+        return recordPos;
 	}
 	
 	private void updateRecord(long recordPos, byte[] newRecord) {
 		tsManager.writeBlock(recordPos, newRecord);
 	}
 
-	private void deleteRecord(long recordPos) {
-		tsManager.free(recordPos);
-		tsManager.decreaseRecordCount();
-		clusteredIndex.delete(recordPos);
+	private void deleteRecord(Object key, long recordPos) {
+        clusteredIndex.delete(key);
+        tsManager.free(recordPos);
+        tsManager.decreaseRecordCount();
 	}
 	
 	@Override
@@ -148,7 +156,7 @@ public class StandardTable implements Table {
 	}
 	
 	private List<Integer> getColumnRealIndexList(List<ColumnMeta> selectColumns) {
-		if (selectColumns.size() == 0) {
+		if (selectColumns.isEmpty()) {
 			return IntStream.range(0, getColumnList().size())
 							.boxed().collect(Collectors.toList());
 		} else {
@@ -160,7 +168,8 @@ public class StandardTable implements Table {
 		}
 	}
 
-    //<column_count><offset_of_payloads><length_of_columndata><...><columndata1><...>
+    //<column_count><offset_of_payloads><length_of_columndata1><columndata1><...>
+    //writeUTF(): write size of colums and column data.
 	@Override
 	public long insert(Map<ColumnMeta,String> values) {
 		int recordSize = Short.BYTES * (1 + values.size());
@@ -170,7 +179,8 @@ public class StandardTable implements Table {
 		
 		ByteBuffer byteBuffer = ByteBuffer.allocate(recordSize);
 		StandardTableUtil.writeUnsignedShort(byteBuffer, getColumnCount());
-		
+
+        Object key = null;
 		int offset = Short.BYTES * (1 + getColumnCount());
 		for (ColumnMeta column : getColumnList()) {
 			StandardTableUtil.writeUnsignedShort(byteBuffer, offset);
@@ -179,15 +189,18 @@ public class StandardTable implements Table {
 			byteBuffer.position(offset);
 			
 			String value = (values.get(column) != null) ? values.get(column) : "";
+            if (column.isKey()) {
+                key = column.getType().cast(value);
+            }
 			//System.out.println("value = " + value);
 			StandardTableUtil.writeUTF(byteBuffer, value);
 			
 			byteBuffer.reset();
 			offset += Short.BYTES + StandardTableUtil.getUTFSize(value);
 		}
-		
-		long recordPos = insertRecord(byteBuffer.array());
-		addToTransactionStack(new UndoInsert(recordPos));
+
+		long recordPos = insertRecord(key, byteBuffer.array());
+		addToTransactionStack(new UndoInsert(key, recordPos));
 		return recordPos;
 	}
 	
@@ -211,7 +224,6 @@ public class StandardTable implements Table {
 				++updated;
 			}
 		}
-        cursor.close();
 		return updated;
 	}
 	
@@ -225,7 +237,6 @@ public class StandardTable implements Table {
 				++deleted;
 			}
 		}
-        cursor.close();
 		return deleted;
 	}
 
@@ -254,11 +265,16 @@ public class StandardTable implements Table {
 	}
 	
 	private final class UndoInsert implements RecordTrackableUndo {
+
+        private final Object key;
+
 		private final long recordPos;
+
         private RecordTracker<Long> recordTracker;
 
-		public UndoInsert(long recordPos) {
-			this.recordPos = recordPos;
+		public UndoInsert(Object key, long recordPos) {
+			this.key = key;
+            this.recordPos = recordPos;
 		}
 
         @Override
@@ -272,8 +288,9 @@ public class StandardTable implements Table {
                 throw new RecordTrackerException("RecordTracker must be set before executing undo.");
             }
 
-            recordTracker.getNewPosition(recordPos).ifPresentOrElse( newPosition -> deleteRecord(newPosition),
-                    () -> deleteRecord(recordPos)
+            Object determinedKey = (key != null) ? key : recordPos;
+            recordTracker.getNewPosition(recordPos).ifPresentOrElse( newPosition -> deleteRecord(determinedKey, newPosition),
+                    () -> deleteRecord(determinedKey, recordPos)
             );
 		}
 	}
@@ -316,11 +333,13 @@ public class StandardTable implements Table {
 	}
 	
 	private final class UndoDelete implements RecordTrackableUndo {
+        private final Object key;
         private final long recordPos;
 		private final byte[] record;
         private RecordTracker<Long> recordTracker;
 
-		public UndoDelete(long recordPos, byte[] record) {
+		public UndoDelete(Object key, long recordPos, byte[] record) {
+            this.key = key;
             this.recordPos = recordPos;
 			this.record = record;
 		}
@@ -336,25 +355,28 @@ public class StandardTable implements Table {
                 throw new RecordTrackerException("RecordTracker must be set before executing undo.");
             }
 
-			long newRecordPos = insertRecord(record);
+			long newRecordPos = insertRecord(key, record);
             recordTracker.setNewPosition(recordPos, newRecordPos);
 		}
 	}
-	
+
 	private final class StandardTableCursor implements Cursor {
 		
-		private final Iterator<Long> tableIndexIterator = clusteredIndex.iterator();
+		private final Iterator<BTreeRecordInfo<Object>> tableIndexIterator = clusteredIndex.iterator();
 		
 		private final List<ColumnMeta> selectColumn;
-		
-		private long recordPos;
-		
+
+        private final ColumnMeta keyColumn;
+
+        private Object key;
+
+        private long recordPos;
+
 		private byte[] record;
 
-        private final List<Long> deletedRecordPosList = new ArrayList<>();
-		
 		public StandardTableCursor(List<ColumnMeta> selectColumn) {
 			this.selectColumn = selectColumn;
+            this.keyColumn = selectColumn.stream().filter(ColumnMeta::isKey).findFirst().orElse(null);
 		}
 
 		@Override
@@ -365,7 +387,10 @@ public class StandardTable implements Table {
 		@Override
 		public boolean next() {
 			if (tableIndexIterator.hasNext()) {
-				this.recordPos = tableIndexIterator.next();
+                var recordInfo = tableIndexIterator.next();
+                this.key = recordInfo.key();
+				this.recordPos = recordInfo.recordPos();
+                //System.out.printf("key = %s, recordPos = %d\n", recordInfo.key(), recordInfo.recordPos());
 				this.record = tsManager.readBlock(recordPos);
 				return true;
 			}
@@ -437,18 +462,17 @@ public class StandardTable implements Table {
 			int columnIndex = getColumnIndex(columnName);
 			
 			String oldValue = StandardTableUtil.readColumnData(record, columnIndex);
-			if (oldValue == newValue) {
+			if (oldValue != null && oldValue.equals(newValue)) {
 				return oldValue;
 			}
 			
 			byte[] newRecord = StandardTableUtil.writeColumnData(record, columnIndex, newValue);
 			if (newRecord.length != record.length) {
-				deleteRecord(this.recordPos);
-				addToTransactionStack(new UndoDelete(this.recordPos, record));
-				
-				this.recordPos = insertRecord(newRecord);
+                deleteRecord(this.key, this.recordPos);
+				addToTransactionStack(new UndoDelete(key, this.recordPos, record));
+				this.recordPos = insertRecord(this.key, newRecord);
 				this.record = newRecord;
-				addToTransactionStack(new UndoInsert(recordPos));
+				addToTransactionStack(new UndoInsert(key, recordPos));
 			} else {
 				updateRecord(this.recordPos, newRecord);
 			}
@@ -459,19 +483,8 @@ public class StandardTable implements Table {
 		
 		@Override
 		public void delete() {
-			deleteRecord(this.recordPos);
-            addToTransactionStack(new UndoDelete(this.recordPos, record));
+            deleteRecord(this.key, this.recordPos);
+            addToTransactionStack(new UndoDelete(key, this.recordPos, record));
 		}
-
-        @Override
-        public void close() {
-            deletedRecordPosList.forEach(recordPos -> clusteredIndex.delete(recordPos));
-        }
-
-        private void deleteRecord(long recordPos) {
-            tsManager.free(recordPos);
-            tsManager.decreaseRecordCount();
-            deletedRecordPosList.add(recordPos);
-        }
     }
 }

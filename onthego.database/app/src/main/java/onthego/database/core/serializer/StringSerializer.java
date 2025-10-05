@@ -1,24 +1,27 @@
 package onthego.database.core.serializer;
 
+import onthego.database.core.table.StandardTableUtil;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class LongSerializer implements Serializer<Object> {
+public class StringSerializer implements Serializer<Object> {
     @Override
     public void write(DataOutputStream out, Object obj) throws IOException {
         //if (obj == null) throw new IOException("Cannot serialize null value.");
-        if (obj == null) out.writeLong(0);
-        else out.writeLong((Long)obj);
+        if (obj == null) out.writeUTF("0");
+        else out.writeUTF((String)obj);
     }
 
     @Override
     public Object read(DataInputStream in) throws IOException {
-        return in.readLong();
+        return in.readUTF();
     }
 
     @Override
     public int estimateSize(Object obj) {
-        return Long.BYTES;
+        String payload = (obj != null) ? (String)obj : "0";
+        return Short.BYTES + StandardTableUtil.getUTFSize(payload);
     }
 }

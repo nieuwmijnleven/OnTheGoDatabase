@@ -169,7 +169,7 @@ public class StandardTableTest {
 		assertTrue(cursor.next());
 		
 		table.begin();
-		
+
 		Iterator<String> iterator = cursor.getRecord();
 		assertEquals("100", iterator.next());
 		assertEquals("smartphone", iterator.next());

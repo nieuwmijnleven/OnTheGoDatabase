@@ -30,5 +30,4 @@ public interface Cursor {
 	
 	void delete();
 
-    void close();
 }

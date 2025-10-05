@@ -383,7 +383,7 @@ public class DatabaseTest {
 		query = "select * from product";
 		Table resultTable = database.execute(query);
 		Cursor cursor = resultTable.getCursor();
-		
+
 		assertFalse(cursor.next());
 		
 		database.begin();
@@ -444,19 +444,19 @@ public class DatabaseTest {
         assertEquals("smartphone", it.next());
         assertEquals("200.1", it.next());
 
-        assertTrue(cursor.next());
-        it = cursor.getRecord();
-        assertEquals("300", it.next());
-        assertEquals("notebook", it.next());
-        assertEquals("800.3", it.next());
-		
 		assertTrue(cursor.next());
 		it = cursor.getRecord();
 		assertEquals("200", it.next());
 		assertEquals("the-state-of-art tablet/pad", it.next());
 		assertEquals("400.2", it.next());
-		
-		query = "delete from product where serial_no = 200";
+
+        assertTrue(cursor.next());
+        it = cursor.getRecord();
+        assertEquals("300", it.next());
+        assertEquals("notebook", it.next());
+        assertEquals("800.3", it.next());
+
+        query = "delete from product where serial_no = 200";
 		database.execute(query);
 		
 		query = "select * from product";
