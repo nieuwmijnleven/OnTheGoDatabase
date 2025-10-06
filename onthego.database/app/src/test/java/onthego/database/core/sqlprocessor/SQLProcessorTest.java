@@ -12,6 +12,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class SQLProcessorTest {
 
@@ -70,14 +71,78 @@ public class SQLProcessorTest {
 		assertEquals(10, column.getType().getLength());
 		assertEquals(3, column.getType().getDecimalLength());
 	}
-	
-	@Test
+
+    @Test
+    public void testCreateTableWithPrimaryKey() throws SQLProcessorException {
+        String sql = "create table product("
+                + "serial_no integer(10),"
+                + "name char(30),"
+                + "price numeric(10,3),"
+                + "primary key(serial_no)"
+                + ")";
+
+        SQLProcessor processor = new SQLProcessor(sql);
+        SQLResult result = processor.process();
+
+        assertEquals(SQLResult.CommandType.CREATE_TABLE, result.getCommand());
+        assertEquals("product", result.getTable());
+
+        List<ColumnMeta> columns = result.getColumns();
+        assertEquals(3, columns.size());
+
+        ColumnMeta column = columns.get(0);
+        assertEquals("serial_no", column.getName());
+        assertEquals(TypeConstants.INTEGER, column.getType().getTypeConstant());
+        assertEquals(10, column.getType().getLength());
+        assertEquals(true, column.isKey());
+        assertEquals(false, column.isNullable());
+
+        column = columns.get(1);
+        assertEquals("name", column.getName());
+        assertEquals(TypeConstants.CHAR, column.getType().getTypeConstant());
+        assertEquals(30, column.getType().getLength());
+
+        column = columns.get(2);
+        assertEquals("price", column.getName());
+        assertEquals(TypeConstants.NUMERIC, column.getType().getTypeConstant());
+        assertEquals(10, column.getType().getLength());
+        assertEquals(3, column.getType().getDecimalLength());
+    }
+
+    @Test
+    public void createTable_duplicatedPrimaryKey_throwSQLProcessorException() {
+        String sql = "create table product("
+                + "serial_no integer(10),"
+                + "name char(4),"
+                + "price numeric(9,4),"
+                + "primary key(serial_no),"
+                + "primary key(name)"
+                + ")";
+
+        SQLProcessor processor = new SQLProcessor(sql);
+        assertThrows(SQLProcessorException.class, () -> processor.process(), "A primary key exists already");
+    }
+
+    @Test
+    public void createTable_primaryKeyWithInvalidColumn_throwSQLProcessorException() {
+        String sql = "create table product("
+                + "serial_no integer(10),"
+                + "name char(4),"
+                + "price numeric(9,4),"
+                + "primary key(serial_number)"
+                + ")";
+
+        SQLProcessor processor = new SQLProcessor(sql);
+        assertThrows(SQLProcessorException.class, () -> processor.process(), "There is no primary key column : serial_number");
+    }
+
+    @Test
 	public void testDropTable() throws SQLProcessorException {
 		String sql = "drop table product";
-		
+
 		SQLProcessor processor = new SQLProcessor(sql);
 		SQLResult result = processor.process();
-		
+
 		assertEquals(SQLResult.CommandType.DROP_TABLE, result.getCommand());
 		assertEquals("product", result.getTable());
 	}

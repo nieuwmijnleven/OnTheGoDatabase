@@ -176,7 +176,9 @@ public class StandardTablespaceManager implements TablespaceManager {
 				out.writeUTF(column.getType().getTypeConstant().toString());  //<column_type>
 				out.writeInt(column.getType().getLength());  //<column_type_length>
 				out.writeInt(column.getType().getDecimalLength());  //<column_decimal_length>
-			}
+                out.writeBoolean(column.isKey());  //<column_is_key>
+                out.writeBoolean(column.isNullable());  //<column_is_nullable>
+            }
 			
 			out.flush();
 			byte[] tableMetaInfoEntry = baout.toByteArray();
@@ -206,19 +208,27 @@ public class StandardTablespaceManager implements TablespaceManager {
 				TypeConstants typeConstants = TypeConstants.valueOf(dataBuffer.readUTF());
 				int length = dataBuffer.readInt();
 				int decimalLength = dataBuffer.readInt();
-				
-				columnList.add(new ColumnMeta(name, Types.of(typeConstants, length, decimalLength)));
+                boolean isKey = dataBuffer.readBoolean();
+                boolean isNullable = dataBuffer.readBoolean();
+
+                ColumnMeta columnMeta = new ColumnMeta(name, Types.of(typeConstants, length, decimalLength));
+                columnMeta.setKey(isKey);
+                columnMeta.setNullable(isNullable);
+                columnList.add(columnMeta);
 			}
 			
 			tsHeader.setTableMetaInfo(new TableMetaInfo(tableName, columnList));
 		} catch(IOException ioe) {
 			throw new TablespaceManagerException(ioe);
-		}
+		} finally {
+            if (dataBuffer != null) try { dataBuffer.close(); } catch(IOException ignored){}
+        }
 	}
 
     // The aligned size is multiplication of chunksize
 	private int getChunkAlignedSize(int size) {
-		return (size + (tsHeader.getChunkSize() - 1)) & ~(tsHeader.getChunkSize() - 1);
+        //return (size + (tsHeader.getChunkSize() - 1)) & ~(tsHeader.getChunkSize() - 1);
+        return (size + (tsHeader.getChunkSize() - 1)) & -tsHeader.getChunkSize();
 	}
 
 	private long getBlockHeaderPos(long payloadPos) {
@@ -230,14 +240,13 @@ public class StandardTablespaceManager implements TablespaceManager {
             ByteBuffer buffer = getByteBuffer(DEFAULT_BLOCK_SIZE, true, buf -> read(getBlockHeaderPos(payloadPos), buf));
             return buffer.getInt();
 		} catch(Exception ie) {
-            ie.printStackTrace();
 			throw new TablespaceManagerException(ie);
 		}
 	}
 
 	private int getBlockSize(long payloadPos) {
 		int blockHeader = getBlockHeader(payloadPos);
-		return (blockHeader & ~(tsHeader.getChunkSize() - 1));
+		return (blockHeader & -tsHeader.getChunkSize());
 	}
 
 	private boolean getBlockAllocationStatus(long payloadPos) {
@@ -440,7 +449,7 @@ public class StandardTablespaceManager implements TablespaceManager {
 
 	@Override
 	public long allocate(int size)  {
-		int alignedSize = 0;
+		int alignedSize;
 		if (size >= FREE_LIST_NODE_SIZE) {
 			alignedSize = getChunkAlignedSize(size + BLOCK_OVERHEAD_SIZE);
 		} else {

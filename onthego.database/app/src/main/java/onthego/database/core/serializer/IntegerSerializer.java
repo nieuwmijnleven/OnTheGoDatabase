@@ -4,20 +4,21 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class IntegerSerializer implements Serializer<Integer> {
+public class IntegerSerializer implements Serializer<Object> {
     @Override
-    public void write(DataOutputStream out, Integer obj) throws IOException {
+    public void write(DataOutputStream out, Object obj) throws IOException {
+        //if (obj == null) throw new IOException("Cannot serialize null value.");
         if (obj == null) out.writeInt(0);
-        else out.writeInt(obj);
+        else out.writeInt((Integer)obj);
     }
 
     @Override
-    public Integer read(DataInputStream in) throws IOException {
+    public Object read(DataInputStream in) throws IOException {
         return in.readInt();
     }
 
     @Override
-    public long estimateSize(Integer obj) {
+    public int estimateSize(Object obj) {
         return Integer.BYTES;
     }
 }

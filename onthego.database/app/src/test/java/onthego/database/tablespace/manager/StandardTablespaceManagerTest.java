@@ -149,6 +149,8 @@ public class StandardTablespaceManagerTest {
 				assertEquals(column.getType().getTypeConstant(), TypeConstants.valueOf(io.readUTF()));
 				assertEquals(column.getType().getLength(), io.readInt());
 				assertEquals(column.getType().getDecimalLength(), io.readInt());
+                assertEquals(column.isKey(), io.readBoolean());
+                assertEquals(column.isNullable(), io.readBoolean());
 			}
 		} catch(IOException ioe) {
 			fail("io error occurred : " + ioe.getMessage());

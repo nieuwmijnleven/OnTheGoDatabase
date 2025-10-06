@@ -14,7 +14,8 @@ public class JDBCConnection extends ConnectionAdapter {
 		try {
 			this.database = new Database(url);
 		} catch (DatabaseException e) {
-			throw new SQLException(e.getMessage());
+			e.printStackTrace();
+            throw new SQLException(e.getMessage());
 		}
 	}
 

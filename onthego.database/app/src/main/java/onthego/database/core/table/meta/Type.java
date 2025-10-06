@@ -1,5 +1,8 @@
 package onthego.database.core.table.meta;
 
+import onthego.database.core.serializer.Serializer;
+
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -44,13 +47,19 @@ public abstract class Type {
 	}
 	
 	public boolean verifyValue(String value) {
-		if (Objects.isNull(pattern) || Objects.isNull(value) || value.length() == 0) {
+		if (Objects.isNull(pattern) || Objects.isNull(value) || value.isEmpty()) {
 			return false;
 		}
 		
 		return pattern.matcher(value).matches();
 	}
-	
+
+    public abstract Serializer<?> getSerializer();
+
+    public abstract Comparator<?> getComparator();
+
+    public abstract Object cast(String obj);
+
 	public TypeConstants getTypeConstant() {
 		return typeConstant;
 	}

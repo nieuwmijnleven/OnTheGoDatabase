@@ -1,5 +1,10 @@
 package onthego.database.core.table.meta;
 
+import onthego.database.core.serializer.Serializer;
+import onthego.database.core.serializer.StringSerializer;
+
+import java.util.Comparator;
+
 public class CharType extends Type {
 	
 	public CharType(int length) {
@@ -16,4 +21,19 @@ public class CharType extends Type {
 			throw new TypeException("The type length(" + length + ") is not valid.");
 		}
 	}
+
+    @Override
+    public Serializer<Object> getSerializer() {
+        return new StringSerializer();
+    }
+
+    @Override
+    public Comparator<Object> getComparator() {
+        return Comparator.comparing(String.class::cast);
+    }
+
+    @Override
+    public Object cast(String obj) {
+        return obj;
+    }
 }

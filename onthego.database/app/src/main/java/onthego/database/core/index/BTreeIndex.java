@@ -1,7 +1,10 @@
 package onthego.database.core.index;
 
 import onthego.database.core.exception.InsufficientPayloadSpaceException;
+import onthego.database.core.serializer.LongSerializer;
 import onthego.database.core.serializer.Serializer;
+import onthego.database.core.table.meta.ColumnMeta;
+import onthego.database.core.table.meta.Type;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 
 import java.io.ByteArrayInputStream;
@@ -9,22 +12,23 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Stack;
 
 import static java.util.stream.Collectors.joining;
 
-public class BTreeIndex<T extends Comparable<? super T>> {
-	
+public class BTreeIndex<T> {
+
 	static class Node<T> {
+        int threshold;
 		boolean isLeaf;
 		int n;
 		long pos;
@@ -34,15 +38,30 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		
 		Node<T>[] child;
 		long[] childPos;
-		
-		Node(int threshold, long pos) {
+
+        static <T> Node<T> copyOf(final Node<T> node) {
+            final Node<T> newNode = new Node<>(node.threshold, node.pos);
+
+            newNode.isLeaf = node.isLeaf;
+            newNode.n = node.n;
+
+            System.arraycopy(node.key, 0, newNode.key, 0, node.key.length);
+            System.arraycopy(node.recordPos, 0, newNode.recordPos, 0, node.recordPos.length);
+            System.arraycopy(node.child, 0, newNode.child, 0, node.child.length);
+            System.arraycopy(node.childPos, 0, newNode.childPos, 0, node.childPos.length);
+            return newNode;
+        }
+
+		@SuppressWarnings("unchecked")
+        Node(int threshold, long pos) {
+            this.threshold = threshold;
 			this.isLeaf = false;
 			this.n = 0;
-			this.key = (T[])new Comparable[2*threshold - 1];
+			this.key = (T[])new Comparable<?>[2*threshold - 1];
 			this.recordPos = new long[2*threshold - 1];
 			this.pos = pos;
 			
-			this.child = new Node[2*threshold];
+			this.child = (Node<T>[])new Node<?>[2*threshold];
 			this.childPos = new long[2*threshold];
 		}
 		
@@ -61,18 +80,41 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 	static class Pair<S,V>{
 		S first;
 		V second;
-		
+
 		Pair(S first, V second) {
 			this.first = first;
 			this.second = second;
 		}
 	}
+
+    private Node<T> createSnapshot(final Node<T> node) {
+        if (node == null) {
+            throw new BTreeIndexException("cannot create a snapshot for a empty BTreeIndex.");
+        }
+        return _createSnapshot(node);
+    }
+
+    private Node<T> _createSnapshot(final Node<T> node) {
+        Node<T> replica = Node.copyOf(node);
+        if (node.isLeaf) {
+            return replica;
+        } else {
+            int index = 0;
+            while (index <= node.n) {
+                replica.child[index] = createSnapshot(loadChild(node, index));
+                ++index;
+            }
+        }
+        return replica;
+    }
 	
-	class BTreeIterator implements Iterator<T> {
+	class BTreeIterator implements Iterator<BTreeRecordInfo<T>> {
 		
 		static final int INDEX_TYPE_CHILD = 0;
 		
 		static final int INDEX_TYPE_KEY = 1;
+
+        Node<T> snapshot;
 		
 		Map<Node<T>,Pair<Integer,Integer>> map;
 		
@@ -80,10 +122,11 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		
 		BTreeIterator() {
 			if (root != null && root.n > 0) {
+                this.snapshot = createSnapshot(root);
 				this.map = new HashMap<>();
 				this.stack = new Stack<>();
-				stack.push(root);
-				map.put(root, new Pair<>(INDEX_TYPE_CHILD, 0));
+				stack.push(this.snapshot);
+				map.put(this.snapshot, new Pair<>(INDEX_TYPE_CHILD, 0));
 			}
 		}
 
@@ -93,7 +136,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		}
 
 		@Override
-		public T next() {
+		public BTreeRecordInfo<T> next() {
 			if (!hasNext()) {
 				return null;
 			}
@@ -136,13 +179,13 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 				//currentIndex = 0;
 			}
 			
-			return currentNode.key[currentIndex];
+			return new BTreeRecordInfo<>(currentNode.key[currentIndex], currentNode.recordPos[currentIndex]);
 		}
 	}
 	
 	private final int threshold;
 	
-	private Comparator<T> comparator;
+	private final Comparator<T> comparator;
 
     private final Serializer<T> serializer;
 	
@@ -152,15 +195,29 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 	
 	private int estimatedNodeSize;
 
-	public BTreeIndex(int threshold, Serializer<T> serializer, TablespaceManager tsManager) {
-		this(threshold, serializer, Comparator.naturalOrder(), tsManager);
-		initialize();
-	}
+    public BTreeIndex(int threshold, TablespaceManager tsManager) {
+        this(threshold, null, null, tsManager);
+        initialize();
+    }
 	
-	public BTreeIndex(int threshold, Serializer<T> serializer, Comparator<T> comparator, TablespaceManager tsManager) {
+	@SuppressWarnings("unchecked")
+    public BTreeIndex(int threshold, Serializer<?> serializer, Comparator<?> comparator, TablespaceManager tsManager) {
+        if (serializer == null || comparator == null) {
+            List<ColumnMeta> columMetaList = tsManager.getHeader().getTableMetaInfo().getColumnList();
+            Optional<ColumnMeta> primaryKeyColumnMeta = columMetaList.stream().filter(ColumnMeta::isKey).findFirst();
+            if (primaryKeyColumnMeta.isPresent()) {
+                Type primaryKeyType = primaryKeyColumnMeta.get().getType();
+                serializer = primaryKeyType.getSerializer();
+                comparator = primaryKeyType.getComparator();
+            } else {
+                serializer = new LongSerializer();
+                comparator = Comparator.comparingLong(Long.class::cast);
+            }
+        }
+
         this.threshold = threshold;
-        this.serializer = serializer;
-        this.comparator = comparator;
+        this.serializer = (Serializer<T>) serializer;
+        this.comparator = (Comparator<T>) comparator;
         this.tsManager = tsManager;
         this.estimatedNodeSize = estimateNodeSize();
         initialize();
@@ -175,35 +232,6 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 			this.root = loadNode(tsManager.getRootPos());
 		}
 	}
-	
-//	private byte[] generatePayload(Node<T> node) {
-//		try (ByteArrayOutputStream bout = new ByteArrayOutputStream();
-//			 ObjectOutputStream out = new ObjectOutputStream(bout)) {
-//			out.writeBoolean(node.isLeaf);
-//			out.writeInt(node.n);
-//
-//			for (int i = 0; i < node.key.length; ++i) {
-//				try {
-//					out.writeObject(node.key[i]);
-//				} catch (Exception e) {
-//					throw new BTreeIndexException(e);
-//				}
-//			}
-//
-//			for (int i = 0; i < node.recordPos.length; ++i) {
-//				out.writeLong(node.recordPos[i]);
-//			}
-//
-//			for (int i = 0; i < node.childPos.length; ++i) {
-//				out.writeLong(node.childPos[i]);
-//			}
-//
-//			out.flush();
-//			return bout.toByteArray();
-//		} catch(IOException ioe) {
-//			throw new BTreeIndexException(ioe);
-//		}
-//	}
 
     private byte[] generatePayload(Node<T> node) {
         try (ByteArrayOutputStream bout = new ByteArrayOutputStream(); DataOutputStream out = new DataOutputStream(bout)) {
@@ -211,12 +239,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
             out.writeInt(node.n);
 
             for (int i = 0; i < node.key.length; ++i) {
-//                try {
-                    serializer.write(out, node.key[i]);
-//                    out.writeObject(node.key[i]);
-//                } catch (Exception e) {
-//                    throw new BTreeIndexException(e);
-//                }
+                serializer.write(out, node.key[i]);
             }
 
             for (int i = 0; i < node.recordPos.length; ++i) {
@@ -235,7 +258,9 @@ public class BTreeIndex<T extends Comparable<? super T>> {
     }
 	
 	private int estimateNodeSize() {
-		return generatePayload(new Node<T>(threshold, 0)).length;
+        final Node<T> node = new Node<>(threshold, 0);
+        final int Boolean_BYTES = 1;
+        return Boolean_BYTES + Integer.BYTES + (serializer.estimateSize(null) * node.key.length)  + (Long.BYTES * node.recordPos.length) + (Long.BYTES * node.childPos.length);
 	}
 	
 	private void saveNode(Node<T> node) {
@@ -264,7 +289,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 	private Node<T> loadNode(long pos) {
 		try (ByteArrayInputStream bin = new ByteArrayInputStream(tsManager.readBlock(pos));
 			 DataInputStream in = new DataInputStream(bin)) {
-			Node<T> node = new Node<T>(threshold, pos);
+			Node<T> node = new Node<>(threshold, pos);
 			node.isLeaf = in.readBoolean();
 			node.n = in.readInt();
 			
@@ -282,14 +307,13 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 			
 			return node;
 		} catch(Exception e) {
-            e.printStackTrace();
 			throw new BTreeIndexException(e);
 		}
 	}
 	
 	private Node<T> allocateNode(boolean isLeaf) {
 		long pos = tsManager.allocate(this.estimatedNodeSize);
-		return new Node<T>(threshold, isLeaf, pos);
+		return new Node<>(threshold, isLeaf, pos);
 	}
 	
 	private void freeNode(Node<T> node) {
@@ -345,21 +369,19 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		dest.child[destIndex] = src.child[srcIndex];
 		dest.childPos[destIndex] = src.childPos[srcIndex];
 	}
-	
-	private void transplantKey(Node<T> dest, int destIndex, Node<T> src, int srcIndex, int count) {
-		for (int index = 0; index < count; ++index) {
-			assignKey(dest, destIndex + index, src, srcIndex + index);
-		}
-	}
+
+    private void transplantKey(Node<T> dest, int destIndex, Node<T> src, int srcIndex, int count) {
+        System.arraycopy(src.key, srcIndex, dest.key, destIndex, count);
+        System.arraycopy(src.recordPos, srcIndex, dest.recordPos, destIndex, count);
+    }
 	
 	private void transplantChild(Node<T> dest, int destIndex, Node<T> src, int srcIndex, int count) {
-		for (int index = 0; index < count; ++index) {
-			assignChild(dest, destIndex + index, src, srcIndex + index);
-		}
+        System.arraycopy(src.child, srcIndex, dest.child, destIndex, count);
+        System.arraycopy(src.childPos, srcIndex, dest.childPos, destIndex, count);
 	}
 	
 	private void moveBackKey(Node<T> node, int from) {
-		for (int index = node.n - 1; index >= from; --index) {
+        for (int index = node.n - 1; index >= from; --index) {
 			assignKey(node, index + 1, node, index);
 		}
 	}
@@ -371,15 +393,15 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 	}
 	
 	private void moveForwardKey(Node<T> node, int from) {
-		for (int index = from + 1; index < node.n; ++index) {
-			assignKey(node, index - 1, node, index);
-		}
+        for (int index = from + 1; index < node.n; ++index) {
+            assignKey(node, index - 1, node, index);
+        }
 	}
 	
 	private void moveForwardChild(Node<T> node, int from) {
-		for (int index = from + 1; index <= node.n; ++index) {
-			assignChild(node, index - 1, node, index);
-		}
+        for (int index = from + 1; index <= node.n; ++index) {
+            assignChild(node, index - 1, node, index);
+        }
 	}
 	
 	//split successor node(node.child[index]) 
@@ -409,9 +431,9 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 	
 	
 	private void insert(Node<T> node, T key, long recordPos) {
-		if (node.isLeaf) {
-			int index = node.n - 1;
-			while (index >= 0 && comparator.compare(key, node.key[index]) <= 0) {
+        int index = node.n - 1;
+        if (node.isLeaf) {
+            while (index >= 0 && comparator.compare(key, node.key[index]) <= 0) {
 				assignKey(node, index + 1, node, index);
 				--index;
 			}
@@ -420,8 +442,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 			node.n++;
 			saveNode(node);
 		} else {
-			int index = node.n - 1;
-			while (index >= 0 && comparator.compare(key, node.key[index]) <= 0) {
+            while (index >= 0 && comparator.compare(key, node.key[index]) <= 0) {
 				--index;
 			}
 			++index;
@@ -590,7 +611,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 					saveNode(leftSibling);
 				} else {
 					if (rightSibling != null) {
-						successor = merge(node, i, successor, rightSibling);			
+						successor = merge(node, i, successor, rightSibling);
 					} else if (leftSibling != null) {
 						successor = merge(node, i - 1, leftSibling, successor);
 					}
@@ -605,7 +626,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 		return delete(root, key);
 	}
 	
-	public Iterator<T> iterator() {
+	public Iterator<BTreeRecordInfo<T>> iterator() {
 		return new BTreeIterator();
 	}
 	
@@ -623,7 +644,7 @@ public class BTreeIndex<T extends Comparable<? super T>> {
 				Node<T> node = queue.poll();
 				System.out.print(node);
 				
-				if (!node.isLeaf) {
+				if (node != null && !node.isLeaf) {
 					for (int i = 0; i <= node.n; ++i) {
 						queue.add(loadChild(node, i));
 					}

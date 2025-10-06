@@ -3,6 +3,7 @@ package onthego.database.core.sqlprocessor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import onthego.database.core.sqlprocessor.expression.Expression;
 import onthego.database.core.sqlprocessor.scanner.TokenManager;
@@ -65,11 +66,11 @@ public class SQLProcessor {
 		TokenManager.createManagedToken("LIKE", "'LIKE'");
 		TokenManager.createManagedToken("NOT", "'NOT'");
 		
-		TokenManager.createManagedToken("ADDITIVE", "\\+|-");
+		TokenManager.createManagedToken("ADDITIVE", "\\+|\\-");
 		TokenManager.createManagedToken("STRING", "(\".*?\")|('.*?')");
 		TokenManager.createManagedToken("RELOP", "[<>][=>]?");
 		
-		TokenManager.createManagedToken("NUMBER", "[0-9]+(\\.[0-9]+)?");
+		TokenManager.createManagedToken("NUMBER", "(\\+|\\-)?[0-9]+(\\.[0-9]+)?");
 		TokenManager.createManagedToken("BOOLEAN", "(true|false)");
 		
 		TokenManager.createManagedToken("IDENTIFIER", "[a-z_][a-z_0-9]*");
@@ -322,76 +323,98 @@ public class SQLProcessor {
 
 	private List<ColumnMeta> columnTypeList() throws SQLProcessorException {
 		List<ColumnMeta> columnTypeList = new ArrayList<>();
-		
+		boolean hasPrimaryKey = false;
 		while (true) {
-			if (!scanner.match(TokenManager.getToken("IDENTIFIER"))) {
-				throw new SQLProcessorException("A column name is required.");
-			}
-			ColumnMeta columnType = new ColumnMeta(scanner.getCurrentLexeme());
-			scanner.next();
-			
-			if (scanner.match(TokenManager.getToken("CHAR"))) {
-				scanner.next();
-				
-				scanner.next(TokenManager.getToken("LP"));
-				if (!scanner.match(TokenManager.getToken("NUMBER"))) {
-					throw new SQLProcessorException("A number is required.");
-				}
-				columnType.setType(Types.of(TypeConstants.CHAR, Integer.parseInt(scanner.getCurrentLexeme()), 0));
-				//columnType.setType(new CharType(Integer.parseInt(scanner.getCurrentLexeme())));
-				scanner.next();
-				
-				scanner.next(TokenManager.getToken("RP"));
-			} else if (scanner.match(TokenManager.getToken("VARCHAR"))) {
-				scanner.next();
-				
-				scanner.next(TokenManager.getToken("LP"));
-				if (!scanner.match(TokenManager.getToken("NUMBER"))) {
-					throw new SQLProcessorException("A number is required.");
-				}
-				columnType.setType(Types.of(TypeConstants.VARCHAR, Integer.parseInt(scanner.getCurrentLexeme()), 0));
-				//columnType.setType(new VarcharType(Integer.parseInt(scanner.getCurrentLexeme())));
-				scanner.next();
-				
-				scanner.next(TokenManager.getToken("RP"));
-			} else if (scanner.match(TokenManager.getToken("INTEGER"))) {
-				scanner.next();
-				
-				scanner.next(TokenManager.getToken("LP"));
-				if (!scanner.match(TokenManager.getToken("NUMBER"))) {
-					throw new SQLProcessorException("A number is required.");
-				}
-				columnType.setType(Types.of(TypeConstants.INTEGER, Integer.parseInt(scanner.getCurrentLexeme()), 0));
-				//columnType.setType(new IntegerType(Integer.parseInt(scanner.getCurrentLexeme())));
-				scanner.next();
-				
-				scanner.next(TokenManager.getToken("RP"));
-			} else if (scanner.match(TokenManager.getToken("NUMERIC"))) {
-				scanner.next();
-				
-				scanner.next(TokenManager.getToken("LP"));
-				if (!scanner.match(TokenManager.getToken("NUMBER"))) {
-					throw new SQLProcessorException("A number is required.");
-				}
-				int integer = Integer.parseInt(scanner.getCurrentLexeme());
-				scanner.next();
-				
-				scanner.next(TokenManager.getToken("COMMA"));
-				
-				if (!scanner.match(TokenManager.getToken("NUMBER"))) {
-					throw new SQLProcessorException("A number is required.");
-				}
-				int decimal = Integer.parseInt(scanner.getCurrentLexeme());
-				scanner.next();
-				
-				columnType.setType(Types.of(TypeConstants.NUMERIC, integer, decimal));
-				//columnType.setType(new NumericType(integer, decimal));
-				scanner.next(TokenManager.getToken("RP"));
-			} else {
-				throw new SQLProcessorException(scanner.getCurrentLexeme() + " is not a valid type.");
-			}
-			
-			columnTypeList.add(columnType);
+            if (scanner.match(TokenManager.getToken("PRIMARY"))) {
+                if (hasPrimaryKey) {
+                    throw new SQLProcessorException("A primary key exists already.");
+                }
+                scanner.next();
+                scanner.next(TokenManager.getToken("KEY"));
+                scanner.next(TokenManager.getToken("LP"));
+
+                if (!scanner.match(TokenManager.getToken("IDENTIFIER"))) {
+                    throw new SQLProcessorException("A primary key column is required.");
+                }
+                String primaryKeyColumnName = scanner.getCurrentLexeme();
+                ColumnMeta primarKeyColumn = columnTypeList.stream()
+                        .filter(column -> column.getName().equalsIgnoreCase(primaryKeyColumnName))
+                        .findFirst().orElseThrow(() -> new SQLProcessorException("There is no primary key column : " + primaryKeyColumnName));
+                primarKeyColumn.setKey(true);
+                primarKeyColumn.setNullable(false);
+                hasPrimaryKey = true;
+                //System.out.println("Primary key : " + primaryKeyColumnName);
+                scanner.next();
+                scanner.next(TokenManager.getToken("RP"));
+            } else if (scanner.match(TokenManager.getToken("IDENTIFIER"))) {
+                ColumnMeta columnType = new ColumnMeta(scanner.getCurrentLexeme());
+                scanner.next();
+
+                if (scanner.match(TokenManager.getToken("CHAR"))) {
+                    scanner.next();
+
+                    scanner.next(TokenManager.getToken("LP"));
+                    if (!scanner.match(TokenManager.getToken("NUMBER"))) {
+                        throw new SQLProcessorException("A number is required.");
+                    }
+                    columnType.setType(Types.of(TypeConstants.CHAR, Integer.parseInt(scanner.getCurrentLexeme()), 0));
+                    //columnType.setType(new CharType(Integer.parseInt(scanner.getCurrentLexeme())));
+                    scanner.next();
+
+                    scanner.next(TokenManager.getToken("RP"));
+                } else if (scanner.match(TokenManager.getToken("VARCHAR"))) {
+                    scanner.next();
+
+                    scanner.next(TokenManager.getToken("LP"));
+                    if (!scanner.match(TokenManager.getToken("NUMBER"))) {
+                        throw new SQLProcessorException("A number is required.");
+                    }
+                    columnType.setType(Types.of(TypeConstants.VARCHAR, Integer.parseInt(scanner.getCurrentLexeme()), 0));
+                    //columnType.setType(new VarcharType(Integer.parseInt(scanner.getCurrentLexeme())));
+                    scanner.next();
+
+                    scanner.next(TokenManager.getToken("RP"));
+                } else if (scanner.match(TokenManager.getToken("INTEGER"))) {
+                    scanner.next();
+
+                    scanner.next(TokenManager.getToken("LP"));
+                    if (!scanner.match(TokenManager.getToken("NUMBER"))) {
+                        throw new SQLProcessorException("A number is required.");
+                    }
+                    columnType.setType(Types.of(TypeConstants.INTEGER, Integer.parseInt(scanner.getCurrentLexeme()), 0));
+                    //columnType.setType(new IntegerType(Integer.parseInt(scanner.getCurrentLexeme())));
+                    scanner.next();
+
+                    scanner.next(TokenManager.getToken("RP"));
+                } else if (scanner.match(TokenManager.getToken("NUMERIC"))) {
+                    scanner.next();
+
+                    scanner.next(TokenManager.getToken("LP"));
+                    if (!scanner.match(TokenManager.getToken("NUMBER"))) {
+                        throw new SQLProcessorException("A number is required.");
+                    }
+                    int integer = Integer.parseInt(scanner.getCurrentLexeme());
+                    scanner.next();
+
+                    scanner.next(TokenManager.getToken("COMMA"));
+
+                    if (!scanner.match(TokenManager.getToken("NUMBER"))) {
+                        throw new SQLProcessorException("A number is required.");
+                    }
+                    int decimal = Integer.parseInt(scanner.getCurrentLexeme());
+                    scanner.next();
+
+                    columnType.setType(Types.of(TypeConstants.NUMERIC, integer, decimal));
+                    //columnType.setType(new NumericType(integer, decimal));
+                    scanner.next(TokenManager.getToken("RP"));
+                } else {
+                    throw new SQLProcessorException(scanner.getCurrentLexeme() + " is not a valid type.");
+                }
+
+                columnTypeList.add(columnType);
+            } else {
+                throw new SQLProcessorException("primary key or column name is required.");
+            }
 			
 			if (!scanner.match(TokenManager.getToken("COMMA"))) {
 				break;

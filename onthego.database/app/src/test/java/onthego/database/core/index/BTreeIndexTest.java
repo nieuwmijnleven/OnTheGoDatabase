@@ -1,6 +1,7 @@
 package onthego.database.core.index;
 
 import onthego.database.core.serializer.IntegerSerializer;
+import onthego.database.core.serializer.Serializer;
 import onthego.database.core.tablespace.manager.StandardTablespaceManager;
 import onthego.database.core.tablespace.manager.TablespaceManager;
 import onthego.database.core.tablespace.meta.StandardTablespaceHeader;
@@ -8,8 +9,11 @@ import onthego.database.core.tablespace.meta.TablespaceHeader;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Random;
 
@@ -33,6 +37,25 @@ public class BTreeIndexTest {
 	private BTreeIndex<Integer> btree;
 	
 	private TablespaceManager tsManager;
+
+    private Serializer<Integer> serializer = new Serializer<Integer>() {
+        @Override
+        public void write(DataOutputStream out, Integer obj) throws IOException {
+            //if (obj == null) throw new IOException("Cannot serialize null value.");
+            if (obj == null) out.writeInt(0);
+            else out.writeInt(obj);
+        }
+
+        @Override
+        public Integer read(DataInputStream in) throws IOException {
+            return in.readInt();
+        }
+
+        @Override
+        public int estimateSize(Integer obj) {
+            return Integer.BYTES;
+        }
+    };
 	
 	@AfterEach
 	public void tearDown() throws Exception {
@@ -42,7 +65,7 @@ public class BTreeIndexTest {
 	private void createBTreeIndex() {
 		try {
 			createSingleTablespace();
-			btree = new BTreeIndex<>(BTREE_THRESHOLD, new IntegerSerializer(), tsManager);
+			btree = new BTreeIndex<>(BTREE_THRESHOLD, serializer, Comparator.naturalOrder(), tsManager);
 		} catch(IOException ioe) {
 			fail("failed to create a btree index.");
 		}
@@ -51,7 +74,7 @@ public class BTreeIndexTest {
 	private void createBTreeIndexWithData() {
 		try {
 			createSingleTablespace();
-			btree = new BTreeIndex<>(BTREE_THRESHOLD, new IntegerSerializer(), tsManager);
+			btree = new BTreeIndex<>(BTREE_THRESHOLD, serializer, Comparator.naturalOrder(), tsManager);
 			for (int key = MIN_KEY_VALUE; key <= MAX_KEY_VALUE; ++key) {
 				btree.insert(key, key + 1);
 			}
@@ -181,9 +204,9 @@ public class BTreeIndexTest {
 		createBTreeIndexWithData();
 		
 		int key = MIN_KEY_VALUE;
-		Iterator<Integer> it = btree.iterator();
+		Iterator<BTreeRecordInfo<Integer>> it = btree.iterator();
 		while (it.hasNext()) {
-            assertEquals(key++, (int) it.next());
+            assertEquals(key++, (int) it.next().key());
 		}
 	}
 
@@ -193,11 +216,11 @@ public class BTreeIndexTest {
 	}
 
 	private void checkOrder() {
-		Iterator<Integer> it = btree.iterator();
+        Iterator<BTreeRecordInfo<Integer>> it = btree.iterator();
 		
 		int prevKey = 0;
 		while (it.hasNext()) {
-			int curKey = it.next();
+			int curKey = it.next().key();
 			if (prevKey >= curKey) {
 				System.out.printf("prevKey = %d, curKey = %d\n", prevKey, curKey);
 				btree.printLevelOrder();
@@ -208,7 +231,7 @@ public class BTreeIndexTest {
 	}
 	
 	private void countKeys(int expected) {
-		Iterator<Integer> it = btree.iterator();
+        Iterator<BTreeRecordInfo<Integer>> it = btree.iterator();
 		
 		int counter = 0;
 		while (it.hasNext()) {

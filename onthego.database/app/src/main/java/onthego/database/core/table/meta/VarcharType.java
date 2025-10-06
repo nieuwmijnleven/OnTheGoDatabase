@@ -6,5 +6,4 @@ public class VarcharType extends CharType {
 		super(length);
 		setTypeConstant(TypeConstants.VARCHAR);
 	}
-
 }
