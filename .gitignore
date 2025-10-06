@@ -1,3 +1,7 @@
 .idea
-./onthego.database/app/build
-./onthego.database/app/out
+onthego.database/app/build
+onthego.database/app/out
+onthego.database/onthego.database.iml
+onthego.database/.gradle
+onthego.database/build
+
