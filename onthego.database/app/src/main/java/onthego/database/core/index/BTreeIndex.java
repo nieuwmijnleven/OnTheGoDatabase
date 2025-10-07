@@ -380,31 +380,66 @@ public class BTreeIndex<T> {
         System.arraycopy(src.childPos, srcIndex, dest.childPos, destIndex, count);
 	}
 	
-	private void moveBackKey(Node<T> node, int from) {
-        for (int index = node.n - 1; index >= from; --index) {
-			assignKey(node, index + 1, node, index);
-		}
-	}
-	
-	private void moveBackChild(Node<T> node, int from) {
-		for (int index = node.n; index >= from; --index) {
-			assignChild(node, index + 1, node, index);
-		}
-	}
-	
-	private void moveForwardKey(Node<T> node, int from) {
-        for (int index = from + 1; index < node.n; ++index) {
-            assignKey(node, index - 1, node, index);
+//	private void moveBackKey(Node<T> node, int from) {
+//        for (int index = node.n - 1; index >= from; --index) {
+//			assignKey(node, index + 1, node, index);
+//		}
+//	}
+
+    private void moveBackKey(Node<T> node, int from) {
+        int length = node.n - from;
+        if (length > 0) {
+            System.arraycopy(node.key, from, node.key, from + 1, length);
+            System.arraycopy(node.recordPos, from, node.recordPos, from + 1, length);
         }
-	}
-	
-	private void moveForwardChild(Node<T> node, int from) {
-        for (int index = from + 1; index <= node.n; ++index) {
-            assignChild(node, index - 1, node, index);
+    }
+
+
+//    private void moveBackChild(Node<T> node, int from) {
+//		for (int index = node.n; index >= from; --index) {
+//			assignChild(node, index + 1, node, index);
+//		}
+//	}
+
+    private void moveBackChild(Node<T> node, int from) {
+        int length = node.n - from + 1;
+        if (length > 0) {
+            System.arraycopy(node.child, from, node.child, from + 1, length);
+            System.arraycopy(node.childPos, from, node.childPos, from + 1, length);
         }
-	}
-	
-	//split successor node(node.child[index]) 
+    }
+
+
+//    private void moveForwardKey(Node<T> node, int from) {
+//        for (int index = from + 1; index < node.n; ++index) {
+//            assignKey(node, index - 1, node, index);
+//        }
+//	}
+
+    private void moveForwardKey(Node<T> node, int from) {
+        int length = node.n - from - 1;
+        if (length > 0) {
+            System.arraycopy(node.key, from + 1, node.key, from, length);
+            System.arraycopy(node.recordPos, from + 1, node.recordPos, from, length);
+        }
+    }
+
+//    private void moveForwardChild(Node<T> node, int from) {
+//        for (int index = from + 1; index <= node.n; ++index) {
+//            assignChild(node, index - 1, node, index);
+//        }
+//	}
+
+    private void moveForwardChild(Node<T> node, int from) {
+        int length = node.n - from;
+        if (length > 0) {
+            System.arraycopy(node.child, from + 1, node.child, from, length);
+            System.arraycopy(node.childPos, from + 1, node.childPos, from, length);
+        }
+    }
+
+
+    //split successor node(node.child[index])
 	private void splitChild(Node<T> parent, int index) {
 		Node<T> successor = loadChild(parent, index);
 		Node<T> sibling = allocateNode(successor.isLeaf);

@@ -1,7 +1,7 @@
 package onthego.database.core.table;
 
 import onthego.database.core.database.DatabaseException;
-import onthego.database.core.index.BTreeIndex;
+import onthego.database.core.index.BPlusTreeIndex;
 import onthego.database.core.index.BTreeRecordInfo;
 import onthego.database.core.serializer.LongSerializer;
 import onthego.database.core.table.meta.ColumnMeta;
@@ -33,7 +33,7 @@ public class StandardTable implements Table {
 	
 	private final TablespaceManager tsManager;
 	
-	private final BTreeIndex<Object> clusteredIndex;
+	private final BPlusTreeIndex<Object> clusteredIndex;
 	
 	private Stack<List<RecordTrackableUndo>> transactionStack;
 	
@@ -48,9 +48,9 @@ public class StandardTable implements Table {
         Optional<ColumnMeta> keyColumn = tableMetaInfo.getColumnList().stream().filter(ColumnMeta::isKey).findFirst();
         if (keyColumn.isPresent()) {
             Type type = keyColumn.get().getType();
-            this.clusteredIndex = new BTreeIndex<>(128, type.getSerializer(), type.getComparator(), tsManager);
+            this.clusteredIndex = new BPlusTreeIndex<>(128, type.getSerializer(), type.getComparator(), tsManager);
         } else {
-            this.clusteredIndex = new BTreeIndex<>(128, new LongSerializer(), Comparator.comparing(Long.class::cast), tsManager);
+            this.clusteredIndex = new BPlusTreeIndex<>(128, new LongSerializer(), Comparator.comparing(Long.class::cast), tsManager);
         }
 
 		this.tableName = tableName;
@@ -60,7 +60,7 @@ public class StandardTable implements Table {
 	// To load a standard table
 	private StandardTable(String path, String tableName) throws IOException {
 		this.tsManager = StandardTablespaceManager.load(path + File.separator + tableName + ".db");
-		this.clusteredIndex = new BTreeIndex<>(128, tsManager);
+		this.clusteredIndex = new BPlusTreeIndex<>(128, tsManager);
 		this.tableName = tableName;
 		this.transactionStack = new Stack<>();
 	}
