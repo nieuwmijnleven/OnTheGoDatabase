@@ -4,6 +4,7 @@ import java.text.ParseException;
 
 import onthego.database.core.table.Cursor;
 import onthego.database.core.table.meta.ColumnMeta;
+import onthego.database.core.table.meta.TypeConstants;
 
 public final class IdValue extends Value {
 	
@@ -35,8 +36,9 @@ public final class IdValue extends Value {
 		
 		columnValue = selectCursor.getColumn(columnName);
 		columnType = selectCursor.getColumnType(columnName);
-		
-		switch (columnType.getType().getTypeConstant()) {
+
+        TypeConstants selector = columnType.getType().getTypeConstant();
+		switch (selector) {
 		case CHAR:
 		case VARCHAR:
 			return new StringValue(columnValue);

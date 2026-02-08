@@ -63,7 +63,7 @@ public class SQLParser {
 				String lexeme = scanner.getCurrentLexeme();
 				scanner.next();
 				
-				RelationalOperator op;
+				RelationalOperator op = null;
 				if (lexeme.length() == 1) {
 					op = lexeme.charAt(0) == '<' ? Expression.LT : Expression.GT;
 				} else {
@@ -132,7 +132,7 @@ public class SQLParser {
 	}
 
 	private Expression parseFactor() throws SQLScannerException {
-		Value value;
+		Value value = null;
 		
 		if (scanner.match(TokenManager.getToken("STRING"))) {
 			value = new StringValue(scanner.getCurrentLexeme());
